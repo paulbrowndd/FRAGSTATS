@@ -225,6 +225,7 @@ window.GUILD_MEMBER_TEAMS = {
 
 /** War result spelling → canonical roster name */
 window.GUILD_NAME_ALIASES = {
+  Grelth: "Afary",
   larsen: "Iarsen",
   Lareon: "Iarsen",
   larion: "Iarsen",

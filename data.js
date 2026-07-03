@@ -1,6 +1,7 @@
 /**
  * Node War result rows by date (YYYY-MM-DD).
  * Optional outcome per day: "victory" | "defeat" (not shown on site).
+ * Optional playmakers per day: string[] of family names (guild MVP bonus).
  */
 window.NODE_WAR_DATA = {
   "2026-05-14": {
@@ -31249,6 +31250,10 @@ window.NODE_WAR_DATA = {
   },
   "2026-07-02": {
     "outcome": "defeat",
+    "playmakers": [
+      "Afary",
+      "Vrey"
+    ],
     "rows": [
       {
         "familyName": "Jazz1118",

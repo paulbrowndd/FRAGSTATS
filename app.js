@@ -64,6 +64,7 @@
     { key: "timeSurvived", label: "Time survived", weight: 0.1 },
     { key: "damageTaken", label: "Damage taken", weight: 0.05 },
     { key: "deaths", label: "Low deaths", weight: 0.05 },
+    { key: "playmakerDays", label: "Playmaker days", weight: 0.15 },
   ];
 
   const DEFENSE_MVP_COMPONENTS = [
@@ -480,7 +481,7 @@
     const rows = aggregateByFamily(data, prevDates);
     const scopedRows = defense ? filterDefenseRows(rows) : filterGuildRows(rows);
     if (!scopedRows.length) return null;
-    const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
+    const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows, countPlaymakerDays(data, prevDates));
     const winner = ranked[0];
     return winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
   }
@@ -656,12 +657,33 @@
     };
   }
 
+  /** Playmaker picks per canonical guild name for wars in `dateKeys`. */
+  function countPlaymakerDays(data, dateKeys) {
+    const counts = new Map();
+    for (const dk of dateKeys) {
+      const day = data[dk];
+      if (!day || !Array.isArray(day.playmakers)) continue;
+      for (const name of day.playmakers) {
+        const canon = resolveGuildName(name);
+        if (!canon) continue;
+        counts.set(canon, (counts.get(canon) || 0) + 1);
+      }
+    }
+    return counts;
+  }
+
+  function playmakerDaysForFamily(familyName, playmakerCounts) {
+    const canon = resolveGuildName(familyName) || familyName;
+    return playmakerCounts.get(canon) || 0;
+  }
+
   /** Monthly MVP: weighted score vs guild-high for each category. */
-  function computeMvpScores(rows) {
+  function computeMvpScores(rows, playmakerCounts = new Map()) {
     if (!rows.length) return [];
     const withMetrics = rows.map((row) => ({
       familyName: row.familyName,
       m: mvpMetricsFromRow(row),
+      playmakerDays: playmakerDaysForFamily(row.familyName, playmakerCounts),
     }));
     const max = {
       enemyKills: Math.max(...withMetrics.map((x) => x.m.enemyKills)),
@@ -672,10 +694,11 @@
       timeSurvived: Math.max(...withMetrics.map((x) => x.m.timeSurvived)),
       damageTaken: Math.max(...withMetrics.map((x) => x.m.damageTaken)),
       deaths: Math.max(...withMetrics.map((x) => x.m.deaths)),
+      playmakerDays: Math.max(...withMetrics.map((x) => x.playmakerDays)),
     };
 
     return withMetrics
-      .map(({ familyName, m }) => {
+      .map(({ familyName, m, playmakerDays }) => {
         const parts = {
           enemyKills: 0.2 * safeRatio(m.enemyKills, max.enemyKills),
           damageDealt: 0.15 * safeRatio(m.damageDealt, max.damageDealt),
@@ -685,6 +708,7 @@
           timeSurvived: 0.1 * safeRatio(m.timeSurvived, max.timeSurvived),
           damageTaken: 0.05 * safeRatio(m.damageTaken, max.damageTaken),
           deaths: 0.05 * (max.deaths > 0 ? 1 - m.deaths / max.deaths : 1),
+          playmakerDays: 0.15 * safeRatio(playmakerDays, max.playmakerDays),
         };
         const score = Object.values(parts).reduce((sum, v) => sum + v, 0);
         return { familyName, score, parts };
@@ -774,10 +798,11 @@
     mvpSection.hidden = !show;
     if (!show) return;
 
-    const ranked = computeMvpScores(guildRows);
-    const winner = ranked[0];
     const data = getWarData();
     const monthKeys = getPeriodDateKeys(data);
+    const playmakerCounts = countPlaymakerDays(data, monthKeys);
+    const ranked = computeMvpScores(guildRows, playmakerCounts);
+    const winner = ranked[0];
     const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
     const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey) : null;
 
