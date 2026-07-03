@@ -465,6 +465,26 @@
     });
   }
 
+  function previousMonthKey(monthKey) {
+    const [y, m] = monthKey.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 2, 1));
+    const py = dt.getUTCFullYear();
+    const pm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+    return `${py}-${pm}`;
+  }
+
+  /** Prior calendar month's MVP winner, or null if that month has no logged wars. */
+  function getPreviousMonthMvpWinner(data, monthKey, { defense = false } = {}) {
+    const prevDates = datesInMonth(data, previousMonthKey(monthKey));
+    if (!prevDates.length) return null;
+    const rows = aggregateByFamily(data, prevDates);
+    const scopedRows = defense ? filterDefenseRows(rows) : filterGuildRows(rows);
+    if (!scopedRows.length) return null;
+    const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
+    const winner = ranked[0];
+    return winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
+  }
+
   function parseGameNumber(s) {
     if (s == null) return 0;
     const t = String(s).trim().toUpperCase().replace(/,/g, "");
@@ -726,8 +746,16 @@
     return Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
   }
 
-  function renderMvpLeaderboard(leaderboardEl, ranked, topN = 10) {
-    leaderboardEl.innerHTML = ranked.slice(0, topN)
+  function renderMvpLeaderboard(leaderboardEl, ranked, topN = 10, excludeFamilyName = null) {
+    const excludeCanon = excludeFamilyName
+      ? resolveGuildName(excludeFamilyName) || excludeFamilyName
+      : null;
+    const list = excludeCanon
+      ? ranked.filter(
+          (entry) => (resolveGuildName(entry.familyName) || entry.familyName) !== excludeCanon
+        )
+      : ranked;
+    leaderboardEl.innerHTML = list.slice(0, topN)
       .map((entry, i) => {
         const first = i === 0 ? " mvp-rank-item--first" : "";
         return `<li class="mvp-rank-item${first}">
@@ -748,6 +776,10 @@
 
     const ranked = computeMvpScores(guildRows);
     const winner = ranked[0];
+    const data = getWarData();
+    const monthKeys = getPeriodDateKeys(data);
+    const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
+    const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey) : null;
 
     mvpWinner.innerHTML = `
       <p class="mvp-winner-label">MVP</p>
@@ -762,7 +794,7 @@
       </div>`
     ).join("");
 
-    renderMvpLeaderboard(mvpLeaderboard, ranked);
+    renderMvpLeaderboard(mvpLeaderboard, ranked, 10, prevWinner);
   }
 
   function renderDefenseMvpSection(rows) {
@@ -778,6 +810,8 @@
     if (defenseRows.length > 0) {
       const ranked = computeDefenseMvpScores(defenseRows);
       const winner = ranked[0];
+      const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
+      const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey, { defense: true }) : null;
 
       defenseMvpWinner.innerHTML = `
         <p class="mvp-winner-label">Defense MVP</p>
@@ -792,7 +826,7 @@
         </div>`
       ).join("");
 
-      renderMvpLeaderboard(defenseMvpLeaderboard, ranked);
+      renderMvpLeaderboard(defenseMvpLeaderboard, ranked, 10, prevWinner);
     } else {
       defenseMvpWinner.innerHTML = `
         <p class="mvp-winner-label">Defense MVP</p>
