@@ -1,7 +1,6 @@
 /**
  * Node War result rows by date (YYYY-MM-DD).
  * Optional outcome per day: "victory" | "defeat" (not shown on site).
- * Optional playmakers per day: string[] of family names (guild MVP bonus).
  */
 window.NODE_WAR_DATA = {
   "2026-05-14": {
@@ -29725,7 +29724,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "52:23"
       },
       {
-        "familyName": "Vray",
+        "familyName": "Vrey",
         "enemyKills": 3,
         "deaths": 15,
         "maxKillStreak": 1,
@@ -30450,7 +30449,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "33:38"
       },
       {
-        "familyName": "Vray",
+        "familyName": "Vrey",
         "enemyKills": 5,
         "deaths": 13,
         "maxKillStreak": 2,
@@ -31121,7 +31120,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "38:33"
       },
       {
-        "familyName": "Vray",
+        "familyName": "Vrey",
         "enemyKills": 12,
         "deaths": 2,
         "maxKillStreak": 2,
@@ -31250,10 +31249,6 @@ window.NODE_WAR_DATA = {
   },
   "2026-07-02": {
     "outcome": "defeat",
-    "playmakers": [
-      "Afary",
-      "Vrey"
-    ],
     "rows": [
       {
         "familyName": "Jazz1118",
@@ -31706,7 +31701,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "50:30"
       },
       {
-        "familyName": "Vray",
+        "familyName": "Vrey",
         "enemyKills": 2,
         "deaths": 17,
         "maxKillStreak": 2,
