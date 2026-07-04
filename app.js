@@ -18,8 +18,8 @@
     { key: "timeSurvived", label: "Time survived", type: "str" },
   ];
 
-  /** Monthly stats only: attendance counts for the selected calendar month. */
-  const MONTHLY_EXTRA_COLS = [
+  /** Node war / siege counts shown before combat stats on aggregated views. */
+  const ATTENDANCE_STAT_COLS = [
     { key: "nodeWar", label: "Node war", type: "num" },
     { key: "siege", label: "Siege", type: "num" },
   ];
@@ -83,6 +83,8 @@
   let currentDate = "";
   let currentWeekSunday = "";
   let currentMonth = "";
+  /** Attendance tab: "week" or "month" — only one scope applies at a time. */
+  let attendanceScopeMode = "week";
   let sortKey = null;
   let sortDir = "asc";
 
@@ -211,6 +213,14 @@
       return [dk];
     }
     if (currentView === VIEW.WEEKLY || currentView === VIEW.ATTENDANCE) {
+      if (currentView === VIEW.ATTENDANCE && attendanceScopeMode === "month") {
+        const months = uniqueMonths(data);
+        const mk =
+          currentMonth && months.some((m) => m.month === currentMonth)
+            ? currentMonth
+            : months[0]?.month;
+        return mk ? datesInMonth(data, mk) : [];
+      }
       const weeks = uniqueWeekStarts(data);
       const sun =
         currentWeekSunday && weeks.some((w) => w.sunday === currentWeekSunday)
@@ -349,8 +359,9 @@
     return present;
   }
 
-  function buildWeeklyAttendanceRows(data, sundayIso) {
-    const { nodeWarDates, siegeDates } = classifyWeekWarDates(data, sundayIso);
+  function buildPeriodAttendanceRows(data, dateKeys) {
+    const nodeWarDates = dateKeys.filter((d) => !isSiegeDate(d));
+    const siegeDates = dateKeys.filter((d) => isSiegeDate(d));
     const rows = getGuildRoster().map((name) => ({
       familyName: name,
       team: getMemberTeam(name) || "—",
@@ -374,6 +385,12 @@
       }
     }
 
+    return { rows, nodeWarDates, siegeDates };
+  }
+
+  function buildWeeklyAttendanceRows(data, sundayIso) {
+    const { nodeWarDates, siegeDates } = classifyWeekWarDates(data, sundayIso);
+    const { rows } = buildPeriodAttendanceRows(data, datesInWeek(data, sundayIso));
     return { rows, nodeWarDates, siegeDates };
   }
 
@@ -418,9 +435,32 @@
     } · ${siegeNote}`;
   }
 
+  function formatMonthAttendanceMeta(monthKey, nodeWarDates, siegeDates) {
+    const siegeNote =
+      siegeDates.length === 0
+        ? "no siege logged"
+        : siegeDates.length === 1
+          ? `siege ${formatShortDate(siegeDates[0])}`
+          : `${siegeDates.length} sieges logged`;
+    return `${formatMonthLabel(monthKey)} · ${nodeWarDates.length} node war${
+      nodeWarDates.length === 1 ? "" : "s"
+    } · ${siegeNote}`;
+  }
+
+  function colsWithAttendanceStats() {
+    const [familyCol, ...rest] = COLS;
+    return [familyCol, ...ATTENDANCE_STAT_COLS, ...rest];
+  }
+
   function getActiveCols() {
     if (currentView === VIEW.ATTENDANCE) return ATTENDANCE_COLS;
-    if (currentView === VIEW.MONTHLY) return [...COLS, ...MONTHLY_EXTRA_COLS];
+    if (
+      currentView === VIEW.WEEKLY ||
+      currentView === VIEW.MONTHLY ||
+      currentView === VIEW.LIFETIME
+    ) {
+      return colsWithAttendanceStats();
+    }
     return COLS;
   }
 
@@ -888,8 +928,6 @@
       defenseMvpBreakdown.innerHTML = "";
       defenseMvpLeaderboard.innerHTML = "";
     }
-
-    updateDefenseWheel();
   }
 
   function truncateWheelLabel(name, maxLen = 11) {
@@ -1245,7 +1283,8 @@
           ? currentWeekSunday
           : weeks[0].sunday;
       const inWeek = datesInWeek(data, sun);
-      const rows = aggregateByFamily(data, inWeek);
+      const attendance = monthlyAttendanceByCanonical(data, inWeek);
+      const rows = attachMonthlyAttendance(aggregateByFamily(data, inWeek), attendance);
       const meta = `Sun–Sat week ${formatWeekRangeLabel(sun)} · ${inWeek.length} war${
         inWeek.length === 1 ? "" : "s"
       } logged`;
@@ -1267,7 +1306,8 @@
       return { rows, meta };
     }
 
-    const rows = aggregateByFamily(data, keys);
+    const attendance = monthlyAttendanceByCanonical(data, keys);
+    const rows = attachMonthlyAttendance(aggregateByFamily(data, keys), attendance);
     return {
       rows,
       meta: `Lifetime · ${keys.length} day${keys.length === 1 ? "" : "s"} recorded`,
@@ -1284,13 +1324,8 @@
     hideStatsPanels();
     renderHead();
 
-    const weeks = uniqueWeekStarts(data);
-    const sun =
-      currentWeekSunday && weeks.some((w) => w.sunday === currentWeekSunday)
-        ? currentWeekSunday
-        : weeks[0]?.sunday;
-
-    if (!sun) {
+    const dateKeys = getPeriodDateKeys(data);
+    if (!dateKeys.length) {
       metaEl.textContent = "No war data logged";
       tbody.innerHTML = `<tr><td colspan="${ATTENDANCE_COLS.length}" class="empty">No attendance data.</td></tr>`;
       tfoot.innerHTML = "";
@@ -1299,8 +1334,20 @@
       return;
     }
 
-    const { rows, nodeWarDates, siegeDates } = buildWeeklyAttendanceRows(data, sun);
-    metaEl.textContent = formatWeekAttendanceMeta(sun, nodeWarDates, siegeDates);
+    const { rows, nodeWarDates, siegeDates } = buildPeriodAttendanceRows(data, dateKeys);
+    if (attendanceScopeMode === "month") {
+      const mk =
+        currentMonth && uniqueMonths(data).some((m) => m.month === currentMonth)
+          ? currentMonth
+          : monthKeyUTC(dateKeys[0]);
+      metaEl.textContent = formatMonthAttendanceMeta(mk, nodeWarDates, siegeDates);
+    } else {
+      const sun =
+        currentWeekSunday && uniqueWeekStarts(data).some((w) => w.sunday === currentWeekSunday)
+          ? currentWeekSunday
+          : sundayOfWeekUTC(dateKeys[0]);
+      metaEl.textContent = formatWeekAttendanceMeta(sun, nodeWarDates, siegeDates);
+    }
 
     const q = (search.value || "").trim().toLowerCase();
     const total = rows.length;
@@ -1414,7 +1461,11 @@
           if (c.key === "familyName") {
             return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
           }
-          if (currentView === VIEW.MONTHLY && (c.key === "nodeWar" || c.key === "siege")) {
+          if (
+            (c.key === "nodeWar" || c.key === "siege") &&
+            currentView !== VIEW.DAILY &&
+            currentView !== VIEW.ATTENDANCE
+          ) {
             const n = Number(v) || 0;
             const mark = n > 0 ? " attendance-cell--present" : " attendance-cell--zero";
             return `<td class="${cls}${mark}">${escapeHtml(String(n))}</td>`;
@@ -1488,10 +1539,15 @@
     const weekly = currentView === VIEW.WEEKLY;
     const monthly = currentView === VIEW.MONTHLY;
     const attendance = currentView === VIEW.ATTENDANCE;
+    const lifetime = currentView === VIEW.LIFETIME;
+
     dateField.hidden = !daily;
     weekField.hidden = !weekly && !attendance;
-    monthField.hidden = !monthly;
-    scopeRow.hidden = !daily && !weekly && !monthly && !attendance;
+    monthField.hidden = !monthly && !attendance;
+    scopeRow.hidden = lifetime || (!daily && !weekly && !monthly && !attendance);
+
+    weekField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "week");
+    monthField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "month");
   }
 
   function setView(view) {
@@ -1543,15 +1599,17 @@
 
     weekSelect.addEventListener("change", function () {
       currentWeekSunday = this.value;
+      if (currentView === VIEW.ATTENDANCE) attendanceScopeMode = "week";
+      updateScopeVisibility();
       renderBody();
     });
 
     monthSelect.addEventListener("change", function () {
       currentMonth = this.value;
+      if (currentView === VIEW.ATTENDANCE) attendanceScopeMode = "month";
+      updateScopeVisibility();
       renderBody();
     });
-
-    initDefenseWheel();
 
     search.addEventListener("input", renderBody);
 

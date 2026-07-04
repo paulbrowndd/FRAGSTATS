@@ -373,6 +373,14 @@ body {
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
+.field--scope-inactive label {
+  opacity: 0.5;
+}
+
+.field:not(.field--scope-inactive) label {
+  color: var(--accent);
+}
+
 /* Toolbar */
 .search {
   flex: 1 1 200px;
