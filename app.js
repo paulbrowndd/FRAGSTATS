@@ -746,15 +746,19 @@
     return Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
   }
 
+  function canonicalFamilyName(familyName) {
+    return resolveGuildName(familyName) || familyName;
+  }
+
+  /** Drop prior month's MVP winner from ranked list (ineligible to repeat). */
+  function mvpEligibleEntries(ranked, excludeFamilyName = null) {
+    if (!excludeFamilyName) return ranked;
+    const excludeCanon = canonicalFamilyName(excludeFamilyName);
+    return ranked.filter((entry) => canonicalFamilyName(entry.familyName) !== excludeCanon);
+  }
+
   function renderMvpLeaderboard(leaderboardEl, ranked, topN = 10, excludeFamilyName = null) {
-    const excludeCanon = excludeFamilyName
-      ? resolveGuildName(excludeFamilyName) || excludeFamilyName
-      : null;
-    const list = excludeCanon
-      ? ranked.filter(
-          (entry) => (resolveGuildName(entry.familyName) || entry.familyName) !== excludeCanon
-        )
-      : ranked;
+    const list = mvpEligibleEntries(ranked, excludeFamilyName);
     leaderboardEl.innerHTML = list.slice(0, topN)
       .map((entry, i) => {
         const first = i === 0 ? " mvp-rank-item--first" : "";
@@ -775,16 +779,22 @@
     if (!show) return;
 
     const ranked = computeMvpScores(guildRows);
-    const winner = ranked[0];
     const data = getWarData();
     const monthKeys = getPeriodDateKeys(data);
     const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
     const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey) : null;
+    const eligible = mvpEligibleEntries(ranked, prevWinner);
+    const winner = eligible[0];
 
-    mvpWinner.innerHTML = `
+    mvpWinner.innerHTML = winner
+      ? `
       <p class="mvp-winner-label">MVP</p>
       <p class="mvp-winner-name">${formatFamilyNameCell(winner.familyName)}</p>
       <p class="mvp-winner-score">Overall score ${escapeHtml(formatMvpScore(winner.score))}</p>
+    `
+      : `
+      <p class="mvp-winner-label">MVP</p>
+      <p class="mvp-winner-score">No eligible MVP this month.</p>
     `;
 
     mvpBreakdown.innerHTML = MVP_COMPONENTS.map(
@@ -809,14 +819,20 @@
 
     if (defenseRows.length > 0) {
       const ranked = computeDefenseMvpScores(defenseRows);
-      const winner = ranked[0];
       const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
       const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey, { defense: true }) : null;
+      const eligible = mvpEligibleEntries(ranked, prevWinner);
+      const winner = eligible[0];
 
-      defenseMvpWinner.innerHTML = `
+      defenseMvpWinner.innerHTML = winner
+        ? `
         <p class="mvp-winner-label">Defense MVP</p>
         <p class="mvp-winner-name">${formatFamilyNameCell(winner.familyName)}</p>
         <p class="mvp-winner-score">Overall score ${escapeHtml(formatMvpScore(winner.score))}</p>
+      `
+        : `
+        <p class="mvp-winner-label">Defense MVP</p>
+        <p class="mvp-winner-score">No eligible Defense MVP this month.</p>
       `;
 
       defenseMvpBreakdown.innerHTML = DEFENSE_MVP_COMPONENTS.map(
