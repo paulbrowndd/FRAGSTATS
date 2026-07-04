@@ -18,6 +18,12 @@
     { key: "timeSurvived", label: "Time survived", type: "str" },
   ];
 
+  /** Monthly stats only: attendance counts for the selected calendar month. */
+  const MONTHLY_EXTRA_COLS = [
+    { key: "nodeWar", label: "Node war", type: "num" },
+    { key: "siege", label: "Siege", type: "num" },
+  ];
+
   const VIEW = { DAILY: "daily", WEEKLY: "weekly", MONTHLY: "monthly", LIFETIME: "lifetime", ATTENDANCE: "attendance" };
 
   const ATTENDANCE_COLS = [
@@ -371,6 +377,35 @@
     return { rows, nodeWarDates, siegeDates };
   }
 
+  function monthlyAttendanceByCanonical(data, dateKeys) {
+    const nodeWarDates = dateKeys.filter((d) => !isSiegeDate(d));
+    const siegeDates = dateKeys.filter((d) => isSiegeDate(d));
+    const counts = new Map();
+
+    const bump = (name, field) => {
+      const canon = resolveGuildName(name);
+      if (!canon) return;
+      if (!counts.has(canon)) counts.set(canon, { nodeWar: 0, siege: 0 });
+      counts.get(canon)[field] += 1;
+    };
+
+    for (const dk of nodeWarDates) {
+      for (const name of presentCanonicalOnDate(data, dk)) bump(name, "nodeWar");
+    }
+    for (const dk of siegeDates) {
+      for (const name of presentCanonicalOnDate(data, dk)) bump(name, "siege");
+    }
+    return counts;
+  }
+
+  function attachMonthlyAttendance(rows, attendanceByCanon) {
+    return rows.map((row) => {
+      const canon = canonicalFamilyName(row.familyName);
+      const att = attendanceByCanon.get(canon) || { nodeWar: 0, siege: 0 };
+      return { ...row, nodeWar: att.nodeWar, siege: att.siege };
+    });
+  }
+
   function formatWeekAttendanceMeta(sundayIso, nodeWarDates, siegeDates) {
     const siegeNote =
       siegeDates.length === 0
@@ -384,7 +419,9 @@
   }
 
   function getActiveCols() {
-    return currentView === VIEW.ATTENDANCE ? ATTENDANCE_COLS : COLS;
+    if (currentView === VIEW.ATTENDANCE) return ATTENDANCE_COLS;
+    if (currentView === VIEW.MONTHLY) return [...COLS, ...MONTHLY_EXTRA_COLS];
+    return COLS;
   }
 
   function getWarData() {
@@ -560,7 +597,7 @@
     const n = rows.length;
     if (!n) return null;
     const out = { familyName: `Average (${n})` };
-    for (const c of COLS) {
+    for (const c of getActiveCols()) {
       if (c.key === "familyName") continue;
       let sum = 0;
       for (const r of rows) sum += valueForAverage(r, c);
@@ -1222,7 +1259,8 @@
           ? currentMonth
           : months[0].month;
       const inMonth = datesInMonth(data, mk);
-      const rows = aggregateByFamily(data, inMonth);
+      const attendance = monthlyAttendanceByCanonical(data, inMonth);
+      const rows = attachMonthlyAttendance(aggregateByFamily(data, inMonth), attendance);
       const meta = `${formatMonthLabel(mk)} · ${inMonth.length} war${
         inMonth.length === 1 ? "" : "s"
       } logged`;
@@ -1375,6 +1413,11 @@
           const cls = c.type === "text" ? "" : c.type;
           if (c.key === "familyName") {
             return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
+          }
+          if (currentView === VIEW.MONTHLY && (c.key === "nodeWar" || c.key === "siege")) {
+            const n = Number(v) || 0;
+            const mark = n > 0 ? " attendance-cell--present" : " attendance-cell--zero";
+            return `<td class="${cls}${mark}">${escapeHtml(String(n))}</td>`;
           }
           return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
         }).join("");
