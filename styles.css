@@ -343,6 +343,10 @@ body {
   max-width: 320px;
 }
 
+.field[hidden] {
+  display: none !important;
+}
+
 .field label {
   font-size: 0.7rem;
   font-weight: 700;
