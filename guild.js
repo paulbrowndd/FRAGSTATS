@@ -98,6 +98,7 @@ window.GUILD_ROSTER = [
   "Trooperr",
   "Ulskay",
   "Umassoura",
+  "UmbralFox",
   "Umbrella",
   "Unagote",
   "Unknown_VII",
