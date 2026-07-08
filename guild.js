@@ -133,7 +133,7 @@ window.GUILD_MEMBER_TEAMS = {
   Coldest: "Ball",
   Coldsin: "Ball",
   Conlaoch: "Ball",
-  Crowee: "Ball",
+  Crowee: "Defense",
   Darkiden: "Ball",
   DDE: "Sailor",
   Datuk_Shd: "Ball",
