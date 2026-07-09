@@ -114,13 +114,40 @@
     return teams && typeof teams === "object" ? teams[name] || null : null;
   }
 
+  function getMemberTeams(name) {
+    const team = getMemberTeam(name);
+    if (!team) return [];
+    return String(team)
+      .split(/\s*[,/]\s*/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  function memberHasTeam(name, team) {
+    return getMemberTeams(name).includes(team);
+  }
+
+  function teamCssClass(team) {
+    return String(team || "")
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+  }
+
+  function formatTeamBadges(teams) {
+    return teams
+      .map((team) => {
+        const teamClass = `player-team player-team--${teamCssClass(team)}`;
+        return `<span class="${teamClass}">${escapeHtml(team)}</span>`;
+      })
+      .join("");
+  }
+
   function formatFamilyNameCell(warName) {
     const name = String(warName || "");
     const canon = resolveGuildName(name) || name;
-    const team = getMemberTeam(canon);
-    if (!team) return escapeHtml(name);
-    const teamClass = `player-team player-team--${team.toLowerCase()}`;
-    return `<span class="player-name">${escapeHtml(name)}</span><span class="${teamClass}">${escapeHtml(team)}</span>`;
+    const teams = getMemberTeams(canon);
+    if (!teams.length) return escapeHtml(name);
+    return `<span class="player-name">${escapeHtml(name)}</span>${formatTeamBadges(teams)}`;
   }
 
   function buildRosterIndex() {
@@ -160,12 +187,12 @@
   }
 
   function filterDefenseRows(rows) {
-    return filterGuildRows(rows).filter((r) => getMemberTeam(resolveGuildName(r.familyName)) === "Defense");
+    return filterGuildRows(rows).filter((r) => memberHasTeam(resolveGuildName(r.familyName), "Defense"));
   }
 
   function getDefenseRoster() {
     return getGuildRoster()
-      .filter((name) => getMemberTeam(name) === "Defense")
+      .filter((name) => memberHasTeam(name, "Defense"))
       .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
   }
 
@@ -176,7 +203,7 @@
     const present = new Set();
     for (const r of day.rows) {
       const canon = resolveGuildName(r.familyName);
-      if (canon && getMemberTeam(canon) === "Defense") present.add(canon);
+      if (canon && memberHasTeam(canon, "Defense")) present.add(canon);
     }
     return Array.from(present).sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" })
@@ -284,26 +311,43 @@
     const warNote =
       wars === 1 ? "1 war" : wars > 1 ? `${wars} wars` : "no wars logged";
 
-    const teamOrder = ["Ball", "Defense", "Sailor"];
+    const teamOrder = [
+      "Shotcaller",
+      "Flex",
+      "D-Flex",
+      "Flag Placer",
+      "Cannons",
+      "Support",
+      "Ball",
+      "Defense",
+      "Sailor",
+    ];
     const teamStats = new Map();
     for (const name of getGuildRoster()) {
-      const team = getMemberTeam(name) || "Unassigned";
-      if (!teamStats.has(team)) teamStats.set(team, { roster: 0, present: 0, missing: [] });
-      const stat = teamStats.get(team);
-      stat.roster += 1;
-      if (present.has(name)) stat.present += 1;
-      else stat.missing.push(name);
+      const teams = getMemberTeams(name);
+      const assignedTeams = teams.length ? teams : ["Unassigned"];
+      for (const team of assignedTeams) {
+        if (!teamStats.has(team)) teamStats.set(team, { roster: 0, present: 0, missing: [] });
+        const stat = teamStats.get(team);
+        stat.roster += 1;
+        if (present.has(name)) stat.present += 1;
+        else stat.missing.push(name);
+      }
     }
 
-    const teamSummary = teamOrder
-      .filter((team) => teamStats.has(team))
+    const extraTeams = [...teamStats.keys()]
+      .filter((team) => !teamOrder.includes(team))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    const orderedTeams = [...teamOrder.filter((team) => teamStats.has(team)), ...extraTeams];
+
+    const teamSummary = orderedTeams
       .map((team) => {
         const stat = teamStats.get(team);
         return `<span class="attendance-team-stat"><strong>${escapeHtml(team)}</strong> ${stat.present}/${stat.roster}</span>`;
       })
       .join("");
 
-    const missingByTeam = teamOrder
+    const missingByTeam = orderedTeams
       .filter((team) => teamStats.get(team)?.missing.length)
       .map((team) => {
         const names = teamStats
@@ -1381,8 +1425,7 @@
             return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
           }
           if (c.key === "team" && v && v !== "—") {
-            const teamClass = `player-team player-team--${String(v).toLowerCase()}`;
-            return `<td class="${cls}"><span class="${teamClass}">${escapeHtml(String(v))}</span></td>`;
+            return `<td class="${cls}">${formatTeamBadges(getMemberTeams(r.familyName))}</td>`;
           }
           if (c.key === "siege" && v > 0) {
             return `<td class="${cls} attendance-cell--present">${escapeHtml(String(v))}</td>`;
@@ -1431,7 +1474,9 @@
     let filtered = q
       ? guildFiltered.filter((r) => {
           const name = String(r.familyName).toLowerCase();
-          const team = (getMemberTeam(resolveGuildName(r.familyName) || r.familyName) || "").toLowerCase();
+          const team = getMemberTeams(resolveGuildName(r.familyName) || r.familyName)
+            .join(" ")
+            .toLowerCase();
           return name.includes(q) || team.includes(q);
         })
       : guildFiltered.slice();

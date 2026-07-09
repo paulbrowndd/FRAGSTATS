@@ -989,6 +989,10 @@ tbody td.str {
   border: 1px solid transparent;
 }
 
+.player-team + .player-team {
+  margin-left: 0.25rem;
+}
+
 .player-team--ball {
   color: #f5d0a8;
   background: rgba(180, 110, 40, 0.22);
@@ -1005,6 +1009,42 @@ tbody td.str {
   color: #b8f0c8;
   background: rgba(40, 120, 80, 0.22);
   border-color: rgba(70, 160, 110, 0.35);
+}
+
+.player-team--shotcaller {
+  color: #ffe8a8;
+  background: rgba(200, 150, 40, 0.24);
+  border-color: rgba(230, 180, 60, 0.4);
+}
+
+.player-team--flex {
+  color: #d8c0ff;
+  background: rgba(110, 70, 170, 0.22);
+  border-color: rgba(150, 100, 210, 0.35);
+}
+
+.player-team--d-flex {
+  color: #a8e8f0;
+  background: rgba(40, 130, 150, 0.22);
+  border-color: rgba(70, 170, 190, 0.35);
+}
+
+.player-team--flag-placer {
+  color: #ffb8a8;
+  background: rgba(180, 70, 50, 0.22);
+  border-color: rgba(220, 100, 70, 0.35);
+}
+
+.player-team--cannons {
+  color: #d0d8e8;
+  background: rgba(90, 100, 120, 0.24);
+  border-color: rgba(130, 140, 160, 0.35);
+}
+
+.player-team--support {
+  color: #c8e8ff;
+  background: rgba(60, 120, 180, 0.2);
+  border-color: rgba(90, 160, 220, 0.35);
 }
 
 tbody tr.row--guest td:first-child {
