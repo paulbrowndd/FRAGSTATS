@@ -84,6 +84,22 @@
     { key: "deaths", label: "Low deaths", weight: 0.05 },
   ];
 
+  const ANALYSIS_LABEL_OVERRIDES = {
+    deaths: "Deaths",
+  };
+
+  /** Raw stat column for each MVP category on analysis tabs. */
+  const ANALYSIS_METRIC_COLS = {
+    enemyKills: { key: "enemyKills", type: "num" },
+    damageDealt: { key: "damageDealt", type: "str" },
+    ccHits: { key: "ccHits", type: "num" },
+    totalDamageToFort: { key: "totalDamageToFort", type: "str" },
+    healing: { key: "healing", type: "str" },
+    timeSurvived: { key: "timeSurvived", type: "str" },
+    damageTaken: { key: "damageTaken", type: "str" },
+    deaths: { key: "deaths", type: "num" },
+  };
+
   const DEFENSE_MVP_COMPONENTS = [
     { key: "ccHits", label: "CC hits", weight: 0.3 },
     { key: "trapsTriggered", label: "Traps triggered", weight: 0.3 },
@@ -115,11 +131,14 @@
     return [
       { key: "familyName", label: "Family name", type: "text" },
       { key: "score", label: "Overall score", type: "pct" },
-      ...MVP_COMPONENTS.map((c) => ({
-        key: `part_${c.key}`,
-        label: c.label,
-        type: "pct",
-      })),
+      ...MVP_COMPONENTS.map((c) => {
+        const stat = ANALYSIS_METRIC_COLS[c.key];
+        return {
+          key: stat.key,
+          label: ANALYSIS_LABEL_OVERRIDES[c.key] || c.label,
+          type: stat.type,
+        };
+      }),
     ];
   }
 
@@ -127,14 +146,24 @@
     return view === VIEW.WEEKLY_ANALYSIS || view === VIEW.MONTHLY_ANALYSIS;
   }
 
-  function rankedToAnalysisRows(ranked) {
-    return ranked.map((entry) => ({
-      familyName: entry.familyName,
-      score: entry.score,
-      ...Object.fromEntries(
-        MVP_COMPONENTS.map((c) => [`part_${c.key}`, entry.parts[c.key]])
-      ),
-    }));
+  function rankedToAnalysisRows(ranked, rawRows) {
+    const byName = new Map(rawRows.map((r) => [r.familyName, r]));
+    return ranked.map((entry) => {
+      const row = byName.get(entry.familyName) || {};
+      const m = mvpMetricsFromRow(row);
+      return {
+        familyName: entry.familyName,
+        score: entry.score,
+        enemyKills: Number(row.enemyKills) || 0,
+        damageDealt: row.damageDealt ?? "0",
+        ccHits: Number(row.ccHits) || 0,
+        totalDamageToFort: row.totalDamageToFort ?? "0",
+        healing: formatGameNumber(m.healing),
+        timeSurvived: row.timeSurvived ?? "0",
+        damageTaken: row.damageTaken ?? "0",
+        deaths: Number(row.deaths) || 0,
+      };
+    });
   }
 
   function splitHighLowPerformers(ranked) {
@@ -1631,7 +1660,7 @@
     const ranked = computeMvpScores(guildFiltered);
     renderWarAnalysisPanel(ranked, meta);
 
-    const analysisRows = rankedToAnalysisRows(ranked);
+    const analysisRows = rankedToAnalysisRows(ranked, guildFiltered);
     const q = (search.value || "").trim().toLowerCase();
     const total = analysisRows.length;
     let filtered = q
