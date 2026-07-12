@@ -131,6 +131,7 @@
     return [
       { key: "familyName", label: "Family name", type: "text" },
       { key: "score", label: "Overall score", type: "pct" },
+      { key: "attendance", label: "Attendance", type: "num" },
       ...MVP_COMPONENTS.map((c) => {
         const stat = ANALYSIS_METRIC_COLS[c.key];
         return {
@@ -146,6 +147,10 @@
     return view === VIEW.WEEKLY_ANALYSIS || view === VIEW.MONTHLY_ANALYSIS;
   }
 
+  function totalWarAttendance(row) {
+    return (Number(row.nodeWar) || 0) + (Number(row.siege) || 0);
+  }
+
   function rankedToAnalysisRows(ranked, rawRows) {
     const byName = new Map(rawRows.map((r) => [r.familyName, r]));
     return ranked.map((entry) => {
@@ -154,6 +159,7 @@
       return {
         familyName: entry.familyName,
         score: entry.score,
+        attendance: totalWarAttendance(row),
         enemyKills: Number(row.enemyKills) || 0,
         damageDealt: row.damageDealt ?? "0",
         ccHits: Number(row.ccHits) || 0,
@@ -1430,7 +1436,8 @@
           ? currentWeekSunday
           : weeks[0].sunday;
       const inWeek = datesInWeek(data, sun);
-      const rows = aggregateByFamily(data, inWeek);
+      const attendance = monthlyAttendanceByCanonical(data, inWeek);
+      const rows = attachMonthlyAttendance(aggregateByFamily(data, inWeek), attendance);
       const meta = `Weekly analysis · Sun–Sat ${formatWeekRangeLabel(sun)} · ${inWeek.length} war${
         inWeek.length === 1 ? "" : "s"
       }`;
@@ -1459,7 +1466,8 @@
           ? currentMonth
           : months[0].month;
       const inMonth = datesInMonth(data, mk);
-      const rows = aggregateByFamily(data, inMonth);
+      const attendance = monthlyAttendanceByCanonical(data, inMonth);
+      const rows = attachMonthlyAttendance(aggregateByFamily(data, inMonth), attendance);
       const meta = `Monthly analysis · ${formatMonthLabel(mk)} · ${inMonth.length} war${
         inMonth.length === 1 ? "" : "s"
       }`;
@@ -1525,6 +1533,11 @@
         }
         if (c.type === "pct") {
           return `<td class="pct">${escapeHtml(formatMvpScore(Number(v) || 0))}</td>`;
+        }
+        if (c.key === "attendance") {
+          const n = Number(v) || 0;
+          const mark = n > 0 ? " attendance-cell--present" : " attendance-cell--zero";
+          return `<td class="${cls}${mark}">${escapeHtml(String(n))}</td>`;
         }
         return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
       })
