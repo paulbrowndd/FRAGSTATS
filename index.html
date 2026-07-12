@@ -33,6 +33,12 @@
           <button type="button" class="tab" data-view="monthly" role="tab" aria-selected="false">
             Monthly
           </button>
+          <button type="button" class="tab" data-view="weekly-analysis" role="tab" aria-selected="false">
+            Weekly analysis
+          </button>
+          <button type="button" class="tab" data-view="monthly-analysis" role="tab" aria-selected="false">
+            Monthly analysis
+          </button>
           <button type="button" class="tab" data-view="lifetime" role="tab" aria-selected="false">
             Lifetime
           </button>
@@ -94,6 +100,17 @@
         <div class="mvp-winner" id="defense-mvp-winner"></div>
         <dl id="defense-mvp-breakdown" class="mvp-breakdown"></dl>
         <ol id="defense-mvp-leaderboard" class="mvp-leaderboard" aria-label="Defense MVP score rankings"></ol>
+      </section>
+
+      <section id="war-analysis-panel" class="war-analysis-section panel" hidden aria-labelledby="war-analysis-heading">
+        <div class="mvp-head">
+          <h2 id="war-analysis-heading" class="mvp-title">War performance analysis</h2>
+          <p id="war-analysis-sub" class="mvp-sub">
+            MVP-weighted scores from period totals. Top half = high performers; bottom half = low performers.
+          </p>
+        </div>
+        <dl id="war-analysis-formula" class="mvp-breakdown"></dl>
+        <p id="war-analysis-summary" class="war-analysis-summary"></p>
       </section>
 
       <div class="table-scroll panel panel--table" role="region" aria-label="Node war statistics table">

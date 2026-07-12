@@ -24,7 +24,15 @@
     { key: "siege", label: "Siege", type: "num" },
   ];
 
-  const VIEW = { DAILY: "daily", WEEKLY: "weekly", MONTHLY: "monthly", LIFETIME: "lifetime", ATTENDANCE: "attendance" };
+  const VIEW = {
+    DAILY: "daily",
+    WEEKLY: "weekly",
+    MONTHLY: "monthly",
+    WEEKLY_ANALYSIS: "weekly-analysis",
+    MONTHLY_ANALYSIS: "monthly-analysis",
+    LIFETIME: "lifetime",
+    ATTENDANCE: "attendance",
+  };
 
   const ATTENDANCE_COLS = [
     { key: "familyName", label: "Family name", type: "text" },
@@ -60,6 +68,10 @@
   const defenseWheelResult = document.getElementById("defense-wheel-result");
   const defenseWheelTally = document.getElementById("defense-wheel-tally");
   const attendancePanel = document.getElementById("attendance-panel");
+  const warAnalysisPanel = document.getElementById("war-analysis-panel");
+  const warAnalysisSub = document.getElementById("war-analysis-sub");
+  const warAnalysisFormula = document.getElementById("war-analysis-formula");
+  const warAnalysisSummary = document.getElementById("war-analysis-summary");
 
   const MVP_COMPONENTS = [
     { key: "enemyKills", label: "Enemy kills", weight: 0.2 },
@@ -98,6 +110,44 @@
 
   const DEFENSE_WHEEL_COLORS = ["#2a5080", "#3a6898", "#1e4068", "#4a78a8", "#234868", "#5278a0"];
   const DEFENSE_SIEGE_ENTRY_WEIGHT = 2;
+
+  function buildAnalysisCols() {
+    return [
+      { key: "familyName", label: "Family name", type: "text" },
+      { key: "score", label: "Overall score", type: "pct" },
+      ...MVP_COMPONENTS.map((c) => ({
+        key: `part_${c.key}`,
+        label: c.label,
+        type: "pct",
+      })),
+    ];
+  }
+
+  function isWarAnalysisView(view = currentView) {
+    return view === VIEW.WEEKLY_ANALYSIS || view === VIEW.MONTHLY_ANALYSIS;
+  }
+
+  function rankedToAnalysisRows(ranked) {
+    return ranked.map((entry) => ({
+      familyName: entry.familyName,
+      score: entry.score,
+      ...Object.fromEntries(
+        MVP_COMPONENTS.map((c) => [`part_${c.key}`, entry.parts[c.key]])
+      ),
+    }));
+  }
+
+  function splitHighLowPerformers(ranked) {
+    if (!ranked.length) return { high: [], low: [], medianScore: 0 };
+    const splitIdx = Math.ceil(ranked.length / 2);
+    const high = ranked.slice(0, splitIdx);
+    const low = ranked.slice(splitIdx);
+    const medianScore =
+      low.length && high.length
+        ? (high[high.length - 1].score + low[0].score) / 2
+        : high[0]?.score || 0;
+    return { high, low, medianScore };
+  }
 
   function getGuildRoster() {
     return Array.isArray(window.GUILD_ROSTER) ? window.GUILD_ROSTER : [];
@@ -239,7 +289,7 @@
       const dk = currentDate && data[currentDate] ? currentDate : keys[keys.length - 1];
       return [dk];
     }
-    if (currentView === VIEW.WEEKLY || currentView === VIEW.ATTENDANCE) {
+    if (currentView === VIEW.WEEKLY || currentView === VIEW.WEEKLY_ANALYSIS || currentView === VIEW.ATTENDANCE) {
       if (currentView === VIEW.ATTENDANCE && attendanceScopeMode === "month") {
         const months = uniqueMonths(data);
         const mk =
@@ -255,7 +305,7 @@
           : weeks[0]?.sunday;
       return sun ? datesInWeek(data, sun) : [];
     }
-    if (currentView === VIEW.MONTHLY) {
+    if (currentView === VIEW.MONTHLY || currentView === VIEW.MONTHLY_ANALYSIS) {
       const months = uniqueMonths(data);
       const mk =
         currentMonth && months.some((m) => m.month === currentMonth)
@@ -289,6 +339,11 @@
   function renderAttendancePanel(data, dateKeys) {
     if (!attendancePanel || !getGuildRoster().length) {
       if (attendancePanel) attendancePanel.hidden = true;
+      return;
+    }
+
+    if (isWarAnalysisView()) {
+      attendancePanel.hidden = true;
       return;
     }
 
@@ -498,6 +553,7 @@
 
   function getActiveCols() {
     if (currentView === VIEW.ATTENDANCE) return ATTENDANCE_COLS;
+    if (isWarAnalysisView()) return buildAnalysisCols();
     if (
       currentView === VIEW.WEEKLY ||
       currentView === VIEW.MONTHLY ||
@@ -662,6 +718,7 @@
   }
 
   function valueForAverage(row, colDef) {
+    if (colDef.type === "pct") return Number(row[colDef.key]) || 0;
     if (colDef.key === "timeDead" || colDef.key === "timeSurvived") {
       return parseTimeToSeconds(row[colDef.key]);
     }
@@ -686,7 +743,8 @@
       let sum = 0;
       for (const r of rows) sum += valueForAverage(r, c);
       const mean = sum / n;
-      if (c.type === "num") out[c.key] = formatAvgNumber(mean);
+      if (c.type === "pct") out[c.key] = formatMvpScore(mean);
+      else if (c.type === "num") out[c.key] = formatAvgNumber(mean);
       else if (c.key === "timeDead" || c.key === "timeSurvived") {
         out[c.key] = formatTimeFromSeconds(Math.round(mean));
       } else {
@@ -777,36 +835,36 @@
     };
   }
 
-  /** Monthly MVP: weighted score vs guild-high for each category. */
+  /** MVP-weighted score vs guild-high for each category. */
   function computeMvpScores(rows) {
     if (!rows.length) return [];
     const withMetrics = rows.map((row) => ({
       familyName: row.familyName,
       m: mvpMetricsFromRow(row),
     }));
-    const max = {
-      enemyKills: Math.max(...withMetrics.map((x) => x.m.enemyKills)),
-      damageDealt: Math.max(...withMetrics.map((x) => x.m.damageDealt)),
-      ccHits: Math.max(...withMetrics.map((x) => x.m.ccHits)),
-      totalDamageToFort: Math.max(...withMetrics.map((x) => x.m.totalDamageToFort)),
-      healing: Math.max(...withMetrics.map((x) => x.m.healing)),
-      timeSurvived: Math.max(...withMetrics.map((x) => x.m.timeSurvived)),
-      damageTaken: Math.max(...withMetrics.map((x) => x.m.damageTaken)),
-      deaths: Math.max(...withMetrics.map((x) => x.m.deaths)),
-    };
+    const max = {};
+    for (const c of MVP_COMPONENTS) {
+      if (c.key === "deaths") {
+        max.deaths = Math.max(...withMetrics.map((x) => x.m.deaths));
+      } else if (c.key === "healing") {
+        max.healing = Math.max(...withMetrics.map((x) => x.m.healing));
+      } else {
+        max[c.key] = Math.max(...withMetrics.map((x) => x.m[c.key]));
+      }
+    }
 
     return withMetrics
       .map(({ familyName, m }) => {
-        const parts = {
-          enemyKills: 0.2 * safeRatio(m.enemyKills, max.enemyKills),
-          damageDealt: 0.15 * safeRatio(m.damageDealt, max.damageDealt),
-          ccHits: 0.15 * safeRatio(m.ccHits, max.ccHits),
-          totalDamageToFort: 0.2 * safeRatio(m.totalDamageToFort, max.totalDamageToFort),
-          healing: 0.1 * safeRatio(m.healing, max.healing),
-          timeSurvived: 0.1 * safeRatio(m.timeSurvived, max.timeSurvived),
-          damageTaken: 0.05 * safeRatio(m.damageTaken, max.damageTaken),
-          deaths: 0.05 * (max.deaths > 0 ? 1 - m.deaths / max.deaths : 1),
-        };
+        const parts = {};
+        for (const c of MVP_COMPONENTS) {
+          if (c.key === "deaths") {
+            parts.deaths = c.weight * (max.deaths > 0 ? 1 - m.deaths / max.deaths : 1);
+          } else if (c.key === "healing") {
+            parts.healing = c.weight * safeRatio(m.healing, max.healing);
+          } else {
+            parts[c.key] = c.weight * safeRatio(m[c.key], max[c.key]);
+          }
+        }
         const score = Object.values(parts).reduce((sum, v) => sum + v, 0);
         return { familyName, score, parts };
       })
@@ -1247,6 +1305,7 @@
         return parseTimeToSeconds(v);
       default:
         if (colDef.type === "num") return Number(v) || 0;
+        if (colDef.type === "pct") return Number(v) || 0;
         if (colDef.type === "str") return parseGameNumber(v);
         return String(v || "");
     }
@@ -1335,6 +1394,20 @@
       return { rows, meta };
     }
 
+    if (currentView === VIEW.WEEKLY_ANALYSIS) {
+      const weeks = uniqueWeekStarts(data);
+      const sun =
+        currentWeekSunday && weeks.some((w) => w.sunday === currentWeekSunday)
+          ? currentWeekSunday
+          : weeks[0].sunday;
+      const inWeek = datesInWeek(data, sun);
+      const rows = aggregateByFamily(data, inWeek);
+      const meta = `Weekly analysis · Sun–Sat ${formatWeekRangeLabel(sun)} · ${inWeek.length} war${
+        inWeek.length === 1 ? "" : "s"
+      }`;
+      return { rows, meta };
+    }
+
     if (currentView === VIEW.MONTHLY) {
       const months = uniqueMonths(data);
       const mk =
@@ -1350,6 +1423,20 @@
       return { rows, meta };
     }
 
+    if (currentView === VIEW.MONTHLY_ANALYSIS) {
+      const months = uniqueMonths(data);
+      const mk =
+        currentMonth && months.some((m) => m.month === currentMonth)
+          ? currentMonth
+          : months[0].month;
+      const inMonth = datesInMonth(data, mk);
+      const rows = aggregateByFamily(data, inMonth);
+      const meta = `Monthly analysis · ${formatMonthLabel(mk)} · ${inMonth.length} war${
+        inMonth.length === 1 ? "" : "s"
+      }`;
+      return { rows, meta };
+    }
+
     const attendance = monthlyAttendanceByCanonical(data, keys);
     const rows = attachMonthlyAttendance(aggregateByFamily(data, keys), attendance);
     return {
@@ -1362,6 +1449,87 @@
     if (attendancePanel) attendancePanel.hidden = true;
     if (mvpSection) mvpSection.hidden = true;
     if (defenseMvpSection) defenseMvpSection.hidden = true;
+    if (warAnalysisPanel) warAnalysisPanel.hidden = true;
+  }
+
+  function renderWarAnalysisPanel(ranked, meta) {
+    if (!warAnalysisPanel) return;
+    const show = isWarAnalysisView() && ranked.length > 0;
+    warAnalysisPanel.hidden = !show;
+    if (!show) return;
+
+    const heading = document.getElementById("war-analysis-heading");
+    if (heading) {
+      heading.textContent =
+        currentView === VIEW.WEEKLY_ANALYSIS ? "Weekly war analysis" : "Monthly war analysis";
+    }
+
+    const periodLabel =
+      currentView === VIEW.WEEKLY_ANALYSIS ? "weekly" : "monthly";
+    if (warAnalysisSub) {
+      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers.`;
+    }
+
+    if (warAnalysisFormula) {
+      warAnalysisFormula.innerHTML = MVP_COMPONENTS.map(
+        (c) => `<div>
+          <dt>${escapeHtml(c.label)}</dt>
+          <dd class="mvp-weight">${escapeHtml(formatMvpWeight(c.weight))}</dd>
+        </div>`
+      ).join("");
+    }
+
+    const { high, low, medianScore } = splitHighLowPerformers(ranked);
+    if (warAnalysisSummary) {
+      warAnalysisSummary.innerHTML = `<strong>${high.length}</strong> high performers · <strong>${low.length}</strong> low performers · split near <strong>${escapeHtml(formatMvpScore(medianScore))}</strong>`;
+    }
+  }
+
+  function renderAnalysisTableRow(r, tierClass) {
+    const cols = getActiveCols();
+    const tds = cols
+      .map((c) => {
+        const v = r[c.key];
+        const cls = c.type === "text" ? "" : c.type;
+        if (c.key === "familyName") {
+          return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
+        }
+        if (c.type === "pct") {
+          return `<td class="pct">${escapeHtml(formatMvpScore(Number(v) || 0))}</td>`;
+        }
+        return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
+      })
+      .join("");
+    return `<tr class="${tierClass}">${tds}</tr>`;
+  }
+
+  function renderGroupedAnalysisRows(filtered, ranked) {
+    const cols = getActiveCols().length;
+    const useGroups = !sortKey || sortKey === "score";
+    if (!useGroups) {
+      return filtered.map((r) => renderAnalysisTableRow(r, "")).join("");
+    }
+
+    const { high, low } = splitHighLowPerformers(ranked);
+    const highNames = new Set(high.map((e) => e.familyName));
+    const lowNames = new Set(low.map((e) => e.familyName));
+    const rankOrder = new Map(ranked.map((e, i) => [e.familyName, i]));
+    const byRank = (a, b) =>
+      (rankOrder.get(a.familyName) ?? 999) - (rankOrder.get(b.familyName) ?? 999);
+
+    const highRows = filtered.filter((r) => highNames.has(r.familyName)).sort(byRank);
+    const lowRows = filtered.filter((r) => lowNames.has(r.familyName)).sort(byRank);
+    let html = "";
+
+    if (highRows.length) {
+      html += `<tr class="analysis-group-header"><td colspan="${cols}">High performers (top half)</td></tr>`;
+      html += highRows.map((r) => renderAnalysisTableRow(r, "row--high-performer")).join("");
+    }
+    if (lowRows.length) {
+      html += `<tr class="analysis-group-header analysis-group-header--low"><td colspan="${cols}">Low performers (bottom half)</td></tr>`;
+      html += lowRows.map((r) => renderAnalysisTableRow(r, "row--low-performer")).join("");
+    }
+    return html;
   }
 
   function renderAttendanceTabBody(data) {
@@ -1451,11 +1619,72 @@
     applyHeaderSortIndicators();
   }
 
+  function renderWarAnalysisBody() {
+    hideStatsPanels();
+    if (attendancePanel) attendancePanel.hidden = true;
+    renderHead();
+
+    const { rows, meta } = getRowsForView();
+    metaEl.textContent = meta;
+
+    const guildFiltered = filterGuildRows(rows);
+    const ranked = computeMvpScores(guildFiltered);
+    renderWarAnalysisPanel(ranked, meta);
+
+    const analysisRows = rankedToAnalysisRows(ranked);
+    const q = (search.value || "").trim().toLowerCase();
+    const total = analysisRows.length;
+    let filtered = q
+      ? analysisRows.filter((r) =>
+          String(r.familyName).toLowerCase().includes(q)
+        )
+      : analysisRows.slice();
+    filtered = sortRowsInPlace(filtered);
+
+    countEl.textContent =
+      filtered.length === total
+        ? `${total} players`
+        : `${filtered.length} of ${total} players`;
+
+    const colCount = getActiveCols().length;
+    if (!filtered.length) {
+      const emptyMsg = total ? "No matching family names." : "No war data for this period.";
+      tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
+      tfoot.innerHTML = "";
+      applyHeaderSortIndicators();
+      return;
+    }
+
+    tbody.innerHTML = renderGroupedAnalysisRows(filtered, ranked);
+
+    const avgRow = computeAverageRow(filtered);
+    tfoot.innerHTML = avgRow
+      ? `<tr>${getActiveCols()
+          .map((c) => {
+            const v = avgRow[c.key];
+            const cls =
+              c.type === "text" ? "" : c.type === "pct" ? "pct" : c.type;
+            if (c.key === "familyName") {
+              return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
+            }
+            return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
+          })
+          .join("")}</tr>`
+      : "";
+
+    applyHeaderSortIndicators();
+  }
+
   function renderBody() {
     const data = getWarData();
 
     if (currentView === VIEW.ATTENDANCE) {
       renderAttendanceTabBody(data);
+      return;
+    }
+
+    if (isWarAnalysisView()) {
+      renderWarAnalysisBody();
       return;
     }
 
@@ -1581,8 +1810,8 @@
 
   function updateScopeVisibility() {
     const daily = currentView === VIEW.DAILY;
-    const weekly = currentView === VIEW.WEEKLY;
-    const monthly = currentView === VIEW.MONTHLY;
+    const weekly = currentView === VIEW.WEEKLY || currentView === VIEW.WEEKLY_ANALYSIS;
+    const monthly = currentView === VIEW.MONTHLY || currentView === VIEW.MONTHLY_ANALYSIS;
     const attendance = currentView === VIEW.ATTENDANCE;
     const lifetime = currentView === VIEW.LIFETIME;
 
@@ -1598,6 +1827,10 @@
   function setView(view) {
     resetSort();
     currentView = view;
+    if (isWarAnalysisView(view)) {
+      sortKey = "score";
+      sortDir = "desc";
+    }
     viewTabs.forEach((btn) => {
       const on = btn.getAttribute("data-view") === view;
       btn.classList.toggle("tab--active", on);
