@@ -23369,6 +23369,24 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "26:18"
       },
       {
+        "familyName": "IEtherealI",
+        "enemyKills": 0,
+        "deaths": 2,
+        "maxKillStreak": 0,
+        "damageDealt": "5.5K",
+        "damageTaken": "91.6K",
+        "ccHits": 2,
+        "hpHealed": "31.9K",
+        "allyHp": "7.3K",
+        "totalDamageToFort": "98.4K",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 2,
+        "timeDead": "01:50",
+        "timeSurvived": "30:22"
+      },
+      {
         "familyName": "Afary",
         "enemyKills": 0,
         "deaths": 8,
@@ -24130,7 +24148,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "38:50"
       },
       {
-        "familyName": "Dragoneel",
+        "familyName": "IEtherealI",
         "enemyKills": 4,
         "deaths": 16,
         "maxKillStreak": 0,
@@ -25128,6 +25146,24 @@ window.NODE_WAR_DATA = {
         "trapsTriggered": 0,
         "timeDead": "00:29",
         "timeSurvived": "25:32"
+      },
+      {
+        "familyName": "IEtherealI",
+        "enemyKills": 1,
+        "deaths": 0,
+        "maxKillStreak": 0,
+        "damageDealt": "43.8K",
+        "damageTaken": "45.0K",
+        "ccHits": 4,
+        "hpHealed": "22.5K",
+        "allyHp": "3.3K",
+        "totalDamageToFort": "342.0K",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "00:58",
+        "timeSurvived": "25:03"
       },
       {
         "familyName": "Trackstarriq",
@@ -26364,7 +26400,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "44:24"
       },
       {
-        "familyName": "RealBanger",
+        "familyName": "IEtherealI",
         "enemyKills": 2,
         "deaths": 17,
         "maxKillStreak": 2,
@@ -29904,7 +29940,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "47:35"
       },
       {
-        "familyName": "MoonlitMocha",
+        "familyName": "IEtherealI",
         "enemyKills": 3,
         "deaths": 20,
         "maxKillStreak": 1,
@@ -31048,7 +31084,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "34:26"
       },
       {
-        "familyName": "Umbrella",
+        "familyName": "IEtherealI",
         "enemyKills": 0,
         "deaths": 14,
         "maxKillStreak": 0,
