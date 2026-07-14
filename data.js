@@ -30395,6 +30395,24 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "33:21"
       },
       {
+        "familyName": "Teospen",
+        "enemyKills": 4,
+        "deaths": 13,
+        "maxKillStreak": 2,
+        "damageDealt": "269.1K",
+        "damageTaken": "258.0K",
+        "ccHits": 22,
+        "hpHealed": "124.0K",
+        "allyHp": "10.8K",
+        "totalDamageToFort": "2.4M",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 3,
+        "timeDead": "06:47",
+        "timeSurvived": "33:19"
+      },
+      {
         "familyName": "Zoyac",
         "enemyKills": 7,
         "deaths": 12,
@@ -30411,6 +30429,24 @@ window.NODE_WAR_DATA = {
         "trapsTriggered": 0,
         "timeDead": "06:45",
         "timeSurvived": "33:21"
+      },
+      {
+        "familyName": "Phalanx619",
+        "enemyKills": 0,
+        "deaths": 12,
+        "maxKillStreak": 0,
+        "damageDealt": "66.6K",
+        "damageTaken": "272.1K",
+        "ccHits": 14,
+        "hpHealed": "139.3K",
+        "allyHp": "47.0K",
+        "totalDamageToFort": "57.7K",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "05:42",
+        "timeSurvived": "34:24"
       },
       {
         "familyName": "NemesisProgram",
@@ -31287,7 +31323,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "55:15"
       },
       {
-        "familyName": "MoonlitMocha",
+        "familyName": "FxAxFxO",
         "enemyKills": 30,
         "deaths": 14,
         "maxKillStreak": 4,
@@ -31305,7 +31341,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "52:41"
       },
       {
-        "familyName": "Conlaoch",
+        "familyName": "MoonlitMocha",
         "enemyKills": 15,
         "deaths": 11,
         "maxKillStreak": 3,
@@ -31339,6 +31375,24 @@ window.NODE_WAR_DATA = {
         "trapsTriggered": 0,
         "timeDead": "11:26",
         "timeSurvived": "47:43"
+      },
+      {
+        "familyName": "Odin_Clan",
+        "enemyKills": 6,
+        "deaths": 12,
+        "maxKillStreak": 2,
+        "damageDealt": "214.5K",
+        "damageTaken": "318.2K",
+        "ccHits": 19,
+        "hpHealed": "176.4K",
+        "allyHp": "21.8K",
+        "totalDamageToFort": "2.6M",
+        "cannonHits": 42,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 312,
+        "trapsTriggered": 0,
+        "timeDead": "08:14",
+        "timeSurvived": "50:55"
       },
       {
         "familyName": "Okami",
@@ -31737,6 +31791,24 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "50:47"
       },
       {
+        "familyName": "Deroxide",
+        "enemyKills": 2,
+        "deaths": 18,
+        "maxKillStreak": 2,
+        "damageDealt": "281.7K",
+        "damageTaken": "266.0K",
+        "ccHits": 17,
+        "hpHealed": "98.0K",
+        "allyHp": "7.4K",
+        "totalDamageToFort": "0",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "14:36",
+        "timeSurvived": "44:33"
+      },
+      {
         "familyName": "Koisenso",
         "enemyKills": 43,
         "deaths": 38,
@@ -31969,6 +32041,24 @@ window.NODE_WAR_DATA = {
         "trapsTriggered": 0,
         "timeDead": "09:59",
         "timeSurvived": "49:10"
+      },
+      {
+        "familyName": "Coldsin",
+        "enemyKills": 2,
+        "deaths": 3,
+        "maxKillStreak": 1,
+        "damageDealt": "78.6K",
+        "damageTaken": "90.4K",
+        "ccHits": 17,
+        "hpHealed": "73.9K",
+        "allyHp": "6.2K",
+        "totalDamageToFort": "0",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "03:55",
+        "timeSurvived": "55:14"
       }
     ]
   },
@@ -32773,6 +32863,24 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "00:00"
       },
       {
+        "familyName": "Coldsin",
+        "enemyKills": 0,
+        "deaths": 0,
+        "maxKillStreak": 0,
+        "damageDealt": "0",
+        "damageTaken": "0",
+        "ccHits": 0,
+        "hpHealed": "0",
+        "allyHp": "0",
+        "totalDamageToFort": "0",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "00:00",
+        "timeSurvived": "00:00"
+      },
+      {
         "familyName": "Conlaoch",
         "enemyKills": 0,
         "deaths": 0,
@@ -32792,6 +32900,24 @@ window.NODE_WAR_DATA = {
       },
       {
         "familyName": "Crowee",
+        "enemyKills": 0,
+        "deaths": 0,
+        "maxKillStreak": 0,
+        "damageDealt": "0",
+        "damageTaken": "0",
+        "ccHits": 0,
+        "hpHealed": "0",
+        "allyHp": "0",
+        "totalDamageToFort": "0",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "00:00",
+        "timeSurvived": "00:00"
+      },
+      {
+        "familyName": "DDE",
         "enemyKills": 0,
         "deaths": 0,
         "maxKillStreak": 0,
@@ -32863,7 +32989,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "00:00"
       },
       {
-        "familyName": "Dragoneel",
+        "familyName": "DrShortstuf",
         "enemyKills": 0,
         "deaths": 0,
         "maxKillStreak": 0,
@@ -32881,7 +33007,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "00:00"
       },
       {
-        "familyName": "DrShortstuf",
+        "familyName": "Dragoneel",
         "enemyKills": 0,
         "deaths": 0,
         "maxKillStreak": 0,
@@ -33169,7 +33295,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "00:00"
       },
       {
-        "familyName": "Lord_Blaze",
+        "familyName": "LordGrim",
         "enemyKills": 0,
         "deaths": 0,
         "maxKillStreak": 0,
@@ -33187,7 +33313,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "00:00"
       },
       {
-        "familyName": "LordGrim",
+        "familyName": "Lord_Blaze",
         "enemyKills": 0,
         "deaths": 0,
         "maxKillStreak": 0,
@@ -33457,6 +33583,24 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "00:00"
       },
       {
+        "familyName": "Trooperr",
+        "enemyKills": 0,
+        "deaths": 0,
+        "maxKillStreak": 0,
+        "damageDealt": "0",
+        "damageTaken": "0",
+        "ccHits": 0,
+        "hpHealed": "0",
+        "allyHp": "0",
+        "totalDamageToFort": "0",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "00:00",
+        "timeSurvived": "00:00"
+      },
+      {
         "familyName": "Umbrella",
         "enemyKills": 0,
         "deaths": 0,
@@ -33661,8 +33805,26 @@ window.NODE_WAR_DATA = {
       },
       {
         "familyName": "Trooperr",
-        "enemyKills": 4,
-        "deaths": 18,
+        "enemyKills": 41,
+        "deaths": 8,
+        "maxKillStreak": 11,
+        "damageDealt": "1.0M",
+        "damageTaken": "321.1K",
+        "ccHits": 132,
+        "hpHealed": "230.5K",
+        "allyHp": "37.2K",
+        "totalDamageToFort": "3.3M",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "03:20",
+        "timeSurvived": "53:39"
+      },
+      {
+        "familyName": "Warp",
+        "enemyKills": 18,
+        "deaths": 11,
         "maxKillStreak": 11,
         "damageDealt": "779.8K",
         "damageTaken": "494.2K",
@@ -33676,24 +33838,6 @@ window.NODE_WAR_DATA = {
         "trapsTriggered": 0,
         "timeDead": "04:10",
         "timeSurvived": "52:49"
-      },
-      {
-        "familyName": "Warp",
-        "enemyKills": 4,
-        "deaths": 12,
-        "maxKillStreak": 1,
-        "damageDealt": "227.7K",
-        "damageTaken": "296.6K",
-        "ccHits": 34,
-        "hpHealed": "170.0K",
-        "allyHp": "18.7K",
-        "totalDamageToFort": "983.1K",
-        "cannonHits": 0,
-        "objectsDestroyedCannon": 0,
-        "maxCannonHitDistance": 0,
-        "trapsTriggered": 0,
-        "timeDead": "07:31",
-        "timeSurvived": "49:28"
       },
       {
         "familyName": "CheekyBigKahuna",
@@ -33733,6 +33877,24 @@ window.NODE_WAR_DATA = {
       },
       {
         "familyName": "Afary",
+        "enemyKills": 4,
+        "deaths": 12,
+        "maxKillStreak": 1,
+        "damageDealt": "227.7K",
+        "damageTaken": "296.6K",
+        "ccHits": 34,
+        "hpHealed": "170.0K",
+        "allyHp": "18.7K",
+        "totalDamageToFort": "983.1K",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "07:31",
+        "timeSurvived": "49:28"
+      },
+      {
+        "familyName": "Centurien",
         "enemyKills": 10,
         "deaths": 13,
         "maxKillStreak": 2,
@@ -33750,7 +33912,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "51:42"
       },
       {
-        "familyName": "Centurien",
+        "familyName": "Vrey",
         "enemyKills": 8,
         "deaths": 13,
         "maxKillStreak": 2,
@@ -33768,7 +33930,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "53:29"
       },
       {
-        "familyName": "Vrey",
+        "familyName": "GodZeebo",
         "enemyKills": 4,
         "deaths": 8,
         "maxKillStreak": 1,
@@ -33786,7 +33948,7 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "52:53"
       },
       {
-        "familyName": "GodZeebo",
+        "familyName": "Okami",
         "enemyKills": 3,
         "deaths": 2,
         "maxKillStreak": 2,
@@ -36727,6 +36889,24 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "50:06"
       },
       {
+        "familyName": "DDE",
+        "enemyKills": 1,
+        "deaths": 6,
+        "maxKillStreak": 1,
+        "damageDealt": "32.2K",
+        "damageTaken": "86.9K",
+        "ccHits": 2,
+        "hpHealed": "21.9K",
+        "allyHp": "7.6K",
+        "totalDamageToFort": "261.6K",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "03:28",
+        "timeSurvived": "50:35"
+      },
+      {
         "familyName": "XChronik",
         "enemyKills": 2,
         "deaths": 12,
@@ -38625,6 +38805,24 @@ window.NODE_WAR_DATA = {
         "trapsTriggered": 0,
         "timeDead": "02:56",
         "timeSurvived": "53:55"
+      },
+      {
+        "familyName": "Polin",
+        "enemyKills": 0,
+        "deaths": 4,
+        "maxKillStreak": 0,
+        "damageDealt": "13.3K",
+        "damageTaken": "74.6K",
+        "ccHits": 4,
+        "hpHealed": "29.4K",
+        "allyHp": "5.2K",
+        "totalDamageToFort": "3.3M",
+        "cannonHits": 0,
+        "objectsDestroyedCannon": 0,
+        "maxCannonHitDistance": 0,
+        "trapsTriggered": 0,
+        "timeDead": "13:43",
+        "timeSurvived": "43:08"
       },
       {
         "familyName": "IEtherealI",
