@@ -24166,24 +24166,6 @@ window.NODE_WAR_DATA = {
         "timeSurvived": "32:01"
       },
       {
-        "familyName": "RealBanger",
-        "enemyKills": 10,
-        "deaths": 14,
-        "maxKillStreak": 0,
-        "damageDealt": "284.1K",
-        "damageTaken": "294.2K",
-        "ccHits": 75,
-        "hpHealed": "201.1K",
-        "allyHp": "112.8K",
-        "totalDamageToFort": "78.0K",
-        "cannonHits": 0,
-        "objectsDestroyedCannon": 0,
-        "maxCannonHitDistance": 0,
-        "trapsTriggered": 0,
-        "timeDead": "06:36",
-        "timeSurvived": "32:23"
-      },
-      {
         "familyName": "Umbrella",
         "enemyKills": 12,
         "deaths": 16,
