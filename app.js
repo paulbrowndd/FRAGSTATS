@@ -128,18 +128,34 @@
   const DEFENSE_SIEGE_ENTRY_WEIGHT = 2;
 
   function buildAnalysisCols() {
+    const analysisOrder = [
+      "enemyKills",
+      "deaths",
+      "damageDealt",
+      "ccHits",
+      "totalDamageToFort",
+      "healing",
+      "timeSurvived",
+      "damageTaken",
+    ];
+    const mvpByKey = new Map(
+      MVP_COMPONENTS.map((c) => {
+        const stat = ANALYSIS_METRIC_COLS[c.key];
+        return [
+          c.key,
+          {
+            key: stat.key,
+            label: ANALYSIS_LABEL_OVERRIDES[c.key] || c.label,
+            type: stat.type,
+          },
+        ];
+      })
+    );
     return [
       { key: "familyName", label: "Family name", type: "text" },
       { key: "score", label: "Overall score", type: "pct" },
       { key: "attendance", label: "Attendance", type: "num" },
-      ...MVP_COMPONENTS.map((c) => {
-        const stat = ANALYSIS_METRIC_COLS[c.key];
-        return {
-          key: stat.key,
-          label: ANALYSIS_LABEL_OVERRIDES[c.key] || c.label,
-          type: stat.type,
-        };
-      }),
+      ...analysisOrder.map((key) => mvpByKey.get(key)),
     ];
   }
 
@@ -768,23 +784,56 @@
     return rounded.toFixed(1);
   }
 
+  function shouldShowColumnAverage(colDef) {
+    return colDef.key !== "familyName" && colDef.key !== "team";
+  }
+
+  function formatAverageForCol(mean, colDef) {
+    if (colDef.type === "pct") return formatMvpScore(mean);
+    if (colDef.type === "num") return formatAvgNumber(mean);
+    if (colDef.key === "timeDead" || colDef.key === "timeSurvived") {
+      return formatTimeFromSeconds(Math.round(mean));
+    }
+    return formatGameNumber(mean);
+  }
+
+  function computeColumnAverages(rows, cols = getActiveCols()) {
+    const n = rows.length;
+    const avgs = new Map();
+    if (!n) return avgs;
+    for (const c of cols) {
+      if (!shouldShowColumnAverage(c)) continue;
+      let sum = 0;
+      for (const r of rows) sum += valueForAverage(r, c);
+      avgs.set(c.key, formatAverageForCol(sum / n, c));
+    }
+    return avgs;
+  }
+
+  function formatDisplayValue(v, colDef) {
+    if (colDef.type === "pct") return formatMvpScore(Number(v) || 0);
+    return String(v ?? "");
+  }
+
+  function statValueWithAvg(v, colDef, avgByCol) {
+    if (!shouldShowColumnAverage(colDef)) {
+      return escapeHtml(formatDisplayValue(v, colDef));
+    }
+    const avg = avgByCol.get(colDef.key);
+    const display = escapeHtml(formatDisplayValue(v, colDef));
+    if (!avg) return display;
+    return `${display} <span class="stat-avg">(AVG ${escapeHtml(avg)})</span>`;
+  }
+
   /** Averages over the given rows (same list shown in the table, after search). */
   function computeAverageRow(rows) {
     const n = rows.length;
     if (!n) return null;
+    const avgs = computeColumnAverages(rows);
     const out = { familyName: `Average (${n})` };
     for (const c of getActiveCols()) {
       if (c.key === "familyName") continue;
-      let sum = 0;
-      for (const r of rows) sum += valueForAverage(r, c);
-      const mean = sum / n;
-      if (c.type === "pct") out[c.key] = formatMvpScore(mean);
-      else if (c.type === "num") out[c.key] = formatAvgNumber(mean);
-      else if (c.key === "timeDead" || c.key === "timeSurvived") {
-        out[c.key] = formatTimeFromSeconds(Math.round(mean));
-      } else {
-        out[c.key] = formatGameNumber(mean);
-      }
+      out[c.key] = avgs.get(c.key) ?? "";
     }
     return out;
   }
@@ -1522,7 +1571,7 @@
     }
   }
 
-  function renderAnalysisTableRow(r, tierClass) {
+  function renderAnalysisTableRow(r, tierClass, avgByCol) {
     const cols = getActiveCols();
     const tds = cols
       .map((c) => {
@@ -1532,24 +1581,24 @@
           return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
         }
         if (c.type === "pct") {
-          return `<td class="pct">${escapeHtml(formatMvpScore(Number(v) || 0))}</td>`;
+          return `<td class="pct">${statValueWithAvg(v, c, avgByCol)}</td>`;
         }
         if (c.key === "attendance") {
           const n = Number(v) || 0;
           const mark = n > 0 ? " attendance-cell--present" : " attendance-cell--zero";
-          return `<td class="${cls}${mark}">${escapeHtml(String(n))}</td>`;
+          return `<td class="${cls}${mark}">${statValueWithAvg(n, c, avgByCol)}</td>`;
         }
-        return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
+        return `<td class="${cls}">${statValueWithAvg(v, c, avgByCol)}</td>`;
       })
       .join("");
     return `<tr class="${tierClass}">${tds}</tr>`;
   }
 
-  function renderGroupedAnalysisRows(filtered, ranked) {
+  function renderGroupedAnalysisRows(filtered, ranked, avgByCol) {
     const cols = getActiveCols().length;
     const useGroups = !sortKey || sortKey === "score";
     if (!useGroups) {
-      return filtered.map((r) => renderAnalysisTableRow(r, "")).join("");
+      return filtered.map((r) => renderAnalysisTableRow(r, "", avgByCol)).join("");
     }
 
     const { high, low } = splitHighLowPerformers(ranked);
@@ -1565,11 +1614,11 @@
 
     if (highRows.length) {
       html += `<tr class="analysis-group-header"><td colspan="${cols}">High performers (top half)</td></tr>`;
-      html += highRows.map((r) => renderAnalysisTableRow(r, "row--high-performer")).join("");
+      html += highRows.map((r) => renderAnalysisTableRow(r, "row--high-performer", avgByCol)).join("");
     }
     if (lowRows.length) {
       html += `<tr class="analysis-group-header analysis-group-header--low"><td colspan="${cols}">Low performers (bottom half)</td></tr>`;
-      html += lowRows.map((r) => renderAnalysisTableRow(r, "row--low-performer")).join("");
+      html += lowRows.map((r) => renderAnalysisTableRow(r, "row--low-performer", avgByCol)).join("");
     }
     return html;
   }
@@ -1626,6 +1675,8 @@
       return;
     }
 
+    const avgByCol = computeColumnAverages(filtered, ATTENDANCE_COLS);
+
     tbody.innerHTML = filtered
       .map((r) => {
         const tds = ATTENDANCE_COLS.map((c) => {
@@ -1637,13 +1688,16 @@
           if (c.key === "team" && v && v !== "—") {
             return `<td class="${cls}">${formatTeamBadges(getMemberTeams(r.familyName))}</td>`;
           }
-          if (c.key === "siege" && v > 0) {
-            return `<td class="${cls} attendance-cell--present">${escapeHtml(String(v))}</td>`;
+          if (c.key === "team") {
+            return `<td class="${cls}">${escapeHtml(String(v ?? ""))}</td>`;
           }
-          if (c.key === "nodeWars" && v > 0) {
-            return `<td class="${cls} attendance-cell--present">${escapeHtml(String(v))}</td>`;
-          }
-          return `<td class="${cls}${v === 0 ? " attendance-cell--zero" : ""}">${escapeHtml(String(v))}</td>`;
+          const mark =
+            (c.key === "siege" || c.key === "nodeWars") && Number(v) > 0
+              ? " attendance-cell--present"
+              : Number(v) === 0 && (c.key === "siege" || c.key === "nodeWars")
+                ? " attendance-cell--zero"
+                : "";
+          return `<td class="${cls}${mark}">${statValueWithAvg(v, c, avgByCol)}</td>`;
         }).join("");
         return `<tr>${tds}</tr>`;
       })
@@ -1654,8 +1708,8 @@
     tfoot.innerHTML = `<tr>
       <td>Averages (${filtered.length})</td>
       <td></td>
-      <td class="num">${(totalNode / filtered.length).toFixed(1)}</td>
-      <td class="num">${(totalSiege / filtered.length).toFixed(1)}</td>
+      <td class="num">${escapeHtml(formatAvgNumber(totalNode / filtered.length))}</td>
+      <td class="num">${escapeHtml(formatAvgNumber(totalSiege / filtered.length))}</td>
     </tr>`;
 
     applyHeaderSortIndicators();
@@ -1697,7 +1751,8 @@
       return;
     }
 
-    tbody.innerHTML = renderGroupedAnalysisRows(filtered, ranked);
+    const avgByCol = computeColumnAverages(filtered);
+    tbody.innerHTML = renderGroupedAnalysisRows(filtered, ranked, avgByCol);
 
     const avgRow = computeAverageRow(filtered);
     tfoot.innerHTML = avgRow
@@ -1768,6 +1823,8 @@
       return;
     }
 
+    const avgByCol = computeColumnAverages(filtered);
+
     tbody.innerHTML = filtered
       .map((r) => {
         const cols = getActiveCols();
@@ -1784,9 +1841,12 @@
           ) {
             const n = Number(v) || 0;
             const mark = n > 0 ? " attendance-cell--present" : " attendance-cell--zero";
-            return `<td class="${cls}${mark}">${escapeHtml(String(n))}</td>`;
+            return `<td class="${cls}${mark}">${statValueWithAvg(n, c, avgByCol)}</td>`;
           }
-          return `<td class="${cls}">${escapeHtml(String(v))}</td>`;
+          if (c.type === "pct") {
+            return `<td class="pct">${statValueWithAvg(v, c, avgByCol)}</td>`;
+          }
+          return `<td class="${cls}">${statValueWithAvg(v, c, avgByCol)}</td>`;
         }).join("");
         return `<tr>${tds}</tr>`;
       })

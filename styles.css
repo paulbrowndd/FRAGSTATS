@@ -1104,6 +1104,13 @@ tbody tr.row--guest td:first-child {
   color: var(--muted);
 }
 
+.stat-avg {
+  color: var(--muted);
+  font-size: 0.78em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 tfoot td {
   padding: 0.6rem 0.55rem;
   border-top: 2px solid var(--accent);

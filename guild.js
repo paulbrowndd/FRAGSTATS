@@ -110,7 +110,7 @@ window.GUILD_MEMBER_TEAMS = {
   Conlaoch: "Support",
   Crowee: "Defense",
   Darkiden: "Ball",
-  DDE: "Sailor",
+  DDE: "Ball",
   Dalua_Shd: "Ball",
   Deroxide: "Defense",
   Dragoneel: "Shotcaller, Support",
