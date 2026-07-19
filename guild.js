@@ -100,7 +100,7 @@ window.GUILD_ROSTER = [
 /** Member family name → team role */
 window.GUILD_MEMBER_TEAMS = {
   Afary: "Flag Placer",
-  Anime_Inspired: "Ball",
+  Anime_Inspired: "Shai",
   Atmospheric: "Ball",
   AyanamiRei: "Ball",
   Beights: "Ball",

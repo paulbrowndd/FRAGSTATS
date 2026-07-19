@@ -424,6 +424,7 @@
       "Flag Placer",
       "Cannons",
       "Support",
+      "Shai",
       "Ball",
       "Defense",
       "Sailor",
