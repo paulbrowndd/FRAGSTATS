@@ -43564,7 +43564,7 @@ window.NODE_WAR_DATA = {
       },
       {
         "familyName": "GhostMachine",
-        "enemyKills": 1,
+        "enemyKills": 18,
         "deaths": 10,
         "maxKillStreak": 1,
         "damageDealt": "379.2K",
