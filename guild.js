@@ -215,6 +215,7 @@ window.GUILD_NAME_ALIASES = {
   "Holy Trinity": "HolyTrinity",
   "Hypnotica": "Eight76",
   "Iarwen": "Iarsen",
+  "IEthereal": "IEtherealI",
   "IEthereall": "IEtherealI",
   "IHydrex": "IHydrexI",
   "Ikaraswolf": "Ikaroswolf",
