@@ -68,6 +68,7 @@
   const defenseWheelResult = document.getElementById("defense-wheel-result");
   const defenseWheelTally = document.getElementById("defense-wheel-tally");
   const attendancePanel = document.getElementById("attendance-panel");
+  const teamFiltersEl = document.getElementById("team-filters");
   const warAnalysisPanel = document.getElementById("war-analysis-panel");
   const warAnalysisSub = document.getElementById("war-analysis-sub");
   const warAnalysisFormula = document.getElementById("war-analysis-formula");
@@ -115,6 +116,21 @@
   let attendanceScopeMode = "week";
   let sortKey = null;
   let sortDir = "asc";
+  /** Empty = all teams; otherwise show rows matching any selected team. */
+  let selectedTeamFilters = new Set();
+
+  const TEAM_FILTER_ORDER = [
+    "Shotcaller",
+    "Flex",
+    "D-Flex",
+    "Flag Placer",
+    "Cannons",
+    "Support",
+    "Shai",
+    "Ball",
+    "Defense",
+    "Sailor",
+  ];
 
   let rosterIndex = null;
   let defenseWheelRotation = 0;
@@ -226,6 +242,68 @@
 
   function memberHasTeam(name, team) {
     return getMemberTeams(name).includes(team);
+  }
+
+  function getKnownTeamsFromRoster() {
+    const teams = new Set();
+    for (const name of getGuildRoster()) {
+      const assigned = getMemberTeams(name);
+      if (assigned.length) {
+        for (const team of assigned) teams.add(team);
+      } else {
+        teams.add("Unassigned");
+      }
+    }
+    const extra = [...teams]
+      .filter((team) => !TEAM_FILTER_ORDER.includes(team))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    return [...TEAM_FILTER_ORDER.filter((team) => teams.has(team)), ...extra];
+  }
+
+  function rowMatchesTeamFilter(familyName) {
+    if (!selectedTeamFilters.size) return true;
+    const canon = resolveGuildName(familyName) || familyName;
+    const teams = getMemberTeams(canon);
+    const assigned = teams.length ? teams : ["Unassigned"];
+    return assigned.some((team) => selectedTeamFilters.has(team));
+  }
+
+  function applyTeamFilter(rows) {
+    if (!selectedTeamFilters.size) return rows;
+    return rows.filter((r) => rowMatchesTeamFilter(r.familyName));
+  }
+
+  function formatPlayerCountText(filteredCount, totalCount, unit) {
+    let text =
+      filteredCount === totalCount
+        ? `${totalCount} ${unit}`
+        : `${filteredCount} of ${totalCount} ${unit}`;
+    if (selectedTeamFilters.size) {
+      const teams = [...selectedTeamFilters]
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+        .join(", ");
+      text += ` · ${teams}`;
+    }
+    return text;
+  }
+
+  function renderTeamFilters() {
+    if (!teamFiltersEl) return;
+    const teams = getKnownTeamsFromRoster();
+    const chips = teams
+      .map((team) => {
+        const checked = selectedTeamFilters.has(team);
+        const teamClass = teamCssClass(team);
+        return `<label class="team-filter team-filter--${teamClass}${checked ? " team-filter--active" : ""}">
+          <input type="checkbox" class="team-filter-input" value="${escapeHtml(team)}"${checked ? " checked" : ""} />
+          <span>${escapeHtml(team)}</span>
+        </label>`;
+      })
+      .join("");
+    const clearBtn = selectedTeamFilters.size
+      ? `<button type="button" class="team-filter-clear" id="team-filter-clear">Clear</button>`
+      : "";
+    teamFiltersEl.innerHTML = `<span class="team-filters-label">Teams</span>${chips}${clearBtn}`;
   }
 
   function teamCssClass(team) {
@@ -417,18 +495,7 @@
     const warNote =
       wars === 1 ? "1 war" : wars > 1 ? `${wars} wars` : "no wars logged";
 
-    const teamOrder = [
-      "Shotcaller",
-      "Flex",
-      "D-Flex",
-      "Flag Placer",
-      "Cannons",
-      "Support",
-      "Shai",
-      "Ball",
-      "Defense",
-      "Sailor",
-    ];
+    const teamOrder = TEAM_FILTER_ORDER;
     const teamStats = new Map();
     for (const name of getGuildRoster()) {
       const teams = getMemberTeams(name);
@@ -1654,23 +1721,25 @@
     }
 
     const q = (search.value || "").trim().toLowerCase();
-    const total = rows.length;
+    const teamFiltered = applyTeamFilter(rows);
+    const total = teamFiltered.length;
     let filtered = q
-      ? rows.filter((r) => {
+      ? teamFiltered.filter((r) => {
           const name = String(r.familyName).toLowerCase();
           const team = String(r.team || "").toLowerCase();
           return name.includes(q) || team.includes(q);
         })
-      : rows.slice();
+      : teamFiltered.slice();
     filtered = sortRowsInPlace(filtered);
 
-    countEl.textContent =
-      filtered.length === total
-        ? `${total} roster members`
-        : `${filtered.length} of ${total} roster members`;
+    countEl.textContent = formatPlayerCountText(filtered.length, total, "roster members");
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="${ATTENDANCE_COLS.length}" class="empty">No matching family names.</td></tr>`;
+      const emptyMsg =
+        q || selectedTeamFilters.size
+          ? "No matching players for the current filters."
+          : "No matching family names.";
+      tbody.innerHTML = `<tr><td colspan="${ATTENDANCE_COLS.length}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
       tfoot.innerHTML = "";
       applyHeaderSortIndicators();
       return;
@@ -1725,10 +1794,11 @@
     metaEl.textContent = meta;
 
     const guildFiltered = filterGuildRows(rows);
-    const ranked = computeMvpScores(guildFiltered);
+    const teamFiltered = applyTeamFilter(guildFiltered);
+    const ranked = computeMvpScores(teamFiltered);
     renderWarAnalysisPanel(ranked, meta);
 
-    const analysisRows = rankedToAnalysisRows(ranked, guildFiltered);
+    const analysisRows = rankedToAnalysisRows(ranked, teamFiltered);
     const q = (search.value || "").trim().toLowerCase();
     const total = analysisRows.length;
     let filtered = q
@@ -1738,14 +1808,15 @@
       : analysisRows.slice();
     filtered = sortRowsInPlace(filtered);
 
-    countEl.textContent =
-      filtered.length === total
-        ? `${total} players`
-        : `${filtered.length} of ${total} players`;
+    countEl.textContent = formatPlayerCountText(filtered.length, total, "players");
 
     const colCount = getActiveCols().length;
     if (!filtered.length) {
-      const emptyMsg = total ? "No matching family names." : "No war data for this period.";
+      const emptyMsg = total
+        ? q || selectedTeamFilters.size
+          ? "No matching players for the current filters."
+          : "No matching family names."
+        : "No war data for this period.";
       tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
       tfoot.innerHTML = "";
       applyHeaderSortIndicators();
@@ -1796,28 +1867,27 @@
     renderMvpSection(guildFiltered);
     renderDefenseMvpSection(guildFiltered);
 
+    const teamFiltered = applyTeamFilter(guildFiltered);
     const q = (search.value || "").trim().toLowerCase();
-    const total = guildFiltered.length;
+    const total = teamFiltered.length;
     let filtered = q
-      ? guildFiltered.filter((r) => {
+      ? teamFiltered.filter((r) => {
           const name = String(r.familyName).toLowerCase();
           const team = getMemberTeams(resolveGuildName(r.familyName) || r.familyName)
             .join(" ")
             .toLowerCase();
           return name.includes(q) || team.includes(q);
         })
-      : guildFiltered.slice();
+      : teamFiltered.slice();
     filtered = sortRowsInPlace(filtered);
 
-    const countText =
-      filtered.length === total
-        ? `${total} players`
-        : `${filtered.length} of ${total} players`;
-
-    countEl.textContent = countText;
+    countEl.textContent = formatPlayerCountText(filtered.length, total, "players");
 
     if (!filtered.length) {
-      const emptyMsg = "No matching family names.";
+      const emptyMsg =
+        q || selectedTeamFilters.size
+          ? "No matching players for the current filters."
+          : "No matching family names.";
       tbody.innerHTML = `<tr><td colspan="${getActiveCols().length}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
       tfoot.innerHTML = "";
       applyHeaderSortIndicators();
@@ -1949,6 +2019,7 @@
     populateWeekSelect();
     populateMonthSelect();
     updateScopeVisibility();
+    renderTeamFilters();
 
     const data = getWarData();
     const keys = sortedDateKeys(data);
@@ -1993,6 +2064,25 @@
     });
 
     search.addEventListener("input", renderBody);
+
+    if (teamFiltersEl) {
+      teamFiltersEl.addEventListener("change", (e) => {
+        const input = e.target.closest(".team-filter-input");
+        if (input) {
+          const team = input.value;
+          if (input.checked) selectedTeamFilters.add(team);
+          else selectedTeamFilters.delete(team);
+          renderTeamFilters();
+          renderBody();
+          return;
+        }
+        if (e.target.id === "team-filter-clear") {
+          selectedTeamFilters.clear();
+          renderTeamFilters();
+          renderBody();
+        }
+      });
+    }
 
     const tableEl = thead.closest("table");
     tableEl.addEventListener("click", (e) => {

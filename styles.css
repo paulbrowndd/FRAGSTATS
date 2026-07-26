@@ -1100,6 +1100,156 @@ tbody td.str {
   border-color: rgba(90, 160, 220, 0.35);
 }
 
+.player-team--shai {
+  color: #ffd4f0;
+  background: rgba(180, 70, 130, 0.22);
+  border-color: rgba(210, 100, 160, 0.35);
+}
+
+.player-team--unassigned {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.team-filters {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.team-filters-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+
+.team-filter {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  transition: opacity 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.team-filter-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.team-filter > span {
+  display: inline-block;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  opacity: 0.55;
+}
+
+.team-filter--active > span,
+.team-filter:has(.team-filter-input:checked) > span {
+  opacity: 1;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 12px rgba(255, 60, 40, 0.15);
+}
+
+.team-filter:hover > span {
+  opacity: 0.85;
+}
+
+.team-filter--ball > span {
+  color: #f5d0a8;
+  background: rgba(180, 110, 40, 0.22);
+  border-color: rgba(200, 140, 60, 0.35);
+}
+
+.team-filter--defense > span {
+  color: #a8d4f5;
+  background: rgba(50, 100, 160, 0.22);
+  border-color: rgba(80, 140, 200, 0.35);
+}
+
+.team-filter--sailor > span {
+  color: #b8f0c8;
+  background: rgba(40, 120, 80, 0.22);
+  border-color: rgba(70, 160, 110, 0.35);
+}
+
+.team-filter--shotcaller > span {
+  color: #ffe8a8;
+  background: rgba(200, 150, 40, 0.24);
+  border-color: rgba(230, 180, 60, 0.4);
+}
+
+.team-filter--flex > span {
+  color: #d8c0ff;
+  background: rgba(110, 70, 170, 0.22);
+  border-color: rgba(150, 100, 210, 0.35);
+}
+
+.team-filter--d-flex > span {
+  color: #a8e8f0;
+  background: rgba(40, 130, 150, 0.22);
+  border-color: rgba(70, 170, 190, 0.35);
+}
+
+.team-filter--flag-placer > span {
+  color: #ffb8a8;
+  background: rgba(180, 70, 50, 0.22);
+  border-color: rgba(220, 100, 70, 0.35);
+}
+
+.team-filter--cannons > span {
+  color: #d0d8e8;
+  background: rgba(90, 100, 120, 0.24);
+  border-color: rgba(130, 140, 160, 0.35);
+}
+
+.team-filter--support > span {
+  color: #c8e8ff;
+  background: rgba(60, 120, 180, 0.2);
+  border-color: rgba(90, 160, 220, 0.35);
+}
+
+.team-filter--shai > span {
+  color: #ffd4f0;
+  background: rgba(180, 70, 130, 0.22);
+  border-color: rgba(210, 100, 160, 0.35);
+}
+
+.team-filter--unassigned > span {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.team-filter-clear {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  margin-left: 0.15rem;
+}
+
+.team-filter-clear:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
 tbody tr.row--guest td:first-child {
   color: var(--muted);
 }
