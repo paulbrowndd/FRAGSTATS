@@ -949,8 +949,61 @@ thead th:not(:first-child) {
 }
 
 thead th.th--text:first-child .th-sort-btn {
-  padding-left: 1rem;
-  min-width: 8.5rem;
+  padding-left: 0.35rem;
+  min-width: 7rem;
+}
+
+.th-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.35rem 0.45rem 0.55rem;
+}
+
+.player-include-all,
+.player-include-label {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.player-include-content {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.player-include-input {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  accent-color: var(--accent-bright);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.player-include-label {
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.player-include-label--off .player-include-content {
+  opacity: 0.45;
+}
+
+tbody tr.row--excluded-from-avg td:not(:first-child) {
+  opacity: 0.45;
+}
+
+tbody tr.row--excluded-from-avg td:first-child {
+  opacity: 0.75;
+}
+
+tbody tr.row--excluded-from-avg:hover td:not(:first-child) {
+  opacity: 0.55;
 }
 
 .sort-ind {
@@ -976,7 +1029,7 @@ tbody td:first-child {
   position: sticky;
   left: 0;
   z-index: 1;
-  padding-left: 1rem;
+  padding-left: 0.55rem;
   font-weight: 600;
   color: var(--accent-bright);
   background: var(--sticky-col-body);

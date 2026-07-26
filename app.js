@@ -118,6 +118,10 @@
   let sortDir = "asc";
   /** Empty = all teams; otherwise show rows matching any selected team. */
   let selectedTeamFilters = new Set();
+  /** Canonical player names excluded from average calculations (still shown in table). */
+  let excludedPlayers = new Set();
+  /** Last rendered visible rows — used for check-all. */
+  let lastVisibleRows = [];
 
   const TEAM_FILTER_ORDER = [
     "Shotcaller",
@@ -327,6 +331,67 @@
     const teams = getMemberTeams(canon);
     if (!teams.length) return escapeHtml(name);
     return `<span class="player-name">${escapeHtml(name)}</span>${formatTeamBadges(teams)}`;
+  }
+
+  function playerInclusionKey(rowOrName) {
+    const name =
+      typeof rowOrName === "string" ? rowOrName : rowOrName && rowOrName.familyName;
+    const raw = String(name || "").trim();
+    return resolveGuildName(raw) || raw;
+  }
+
+  function isPlayerIncluded(rowOrName) {
+    const key = playerInclusionKey(rowOrName);
+    return key ? !excludedPlayers.has(key) : true;
+  }
+
+  function rowsForAverages(rows) {
+    return rows.filter((r) => isPlayerIncluded(r));
+  }
+
+  function formatFamilyNameCellWithInclude(warName) {
+    const key = playerInclusionKey(warName);
+    const included = isPlayerIncluded(warName);
+    const inner = formatFamilyNameCell(warName);
+    return `<label class="player-include-label${included ? "" : " player-include-label--off"}">
+      <input type="checkbox" class="player-include-input" data-player-key="${escapeHtml(key)}"${
+        included ? " checked" : ""
+      } aria-label="Include in averages" />
+      <span class="player-include-content">${inner}</span>
+    </label>`;
+  }
+
+  function familyNameHeaderHtml(label) {
+    return `<th class="th-sortable th--text th--name" scope="col">
+      <div class="th-name-wrap">
+        <label class="player-include-all" title="Include all visible players in averages">
+          <input type="checkbox" id="player-include-all" class="player-include-input player-include-all-input" aria-label="Include all in averages" />
+          <span class="visually-hidden">Include all in averages</span>
+        </label>
+        <button type="button" class="th-sort-btn" data-sort-key="familyName" aria-label="Sort by ${escapeHtml(label)}">
+          <span class="th-sort-label">${escapeHtml(label)}</span>
+          <span class="sort-ind" aria-hidden="true"></span>
+        </button>
+      </div>
+    </th>`;
+  }
+
+  function updateCheckAllState(visibleRows) {
+    const allInput = document.getElementById("player-include-all");
+    if (!allInput) return;
+    const keys = visibleRows.map((r) => playerInclusionKey(r)).filter(Boolean);
+    if (!keys.length) {
+      allInput.checked = true;
+      allInput.indeterminate = false;
+      return;
+    }
+    const includedCount = keys.filter((k) => !excludedPlayers.has(k)).length;
+    allInput.checked = includedCount === keys.length;
+    allInput.indeterminate = includedCount > 0 && includedCount < keys.length;
+  }
+
+  function rowInclusionClass(row) {
+    return isPlayerIncluded(row) ? "" : " row--excluded-from-avg";
   }
 
   function buildRosterIndex() {
@@ -1504,16 +1569,21 @@
 
   function renderHead() {
     const cols = getActiveCols();
-    thead.innerHTML = cols.map((c) => {
-      const align = c.type === "text" ? "th--text" : "th--num";
-      const num = c.type === "text" ? "" : c.type;
-      return `<th class="th-sortable ${align}${num ? " " + num : ""}" scope="col">
+    thead.innerHTML = cols
+      .map((c) => {
+        if (c.key === "familyName") {
+          return familyNameHeaderHtml(c.label);
+        }
+        const align = c.type === "text" ? "th--text" : "th--num";
+        const num = c.type === "text" ? "" : c.type;
+        return `<th class="th-sortable ${align}${num ? " " + num : ""}" scope="col">
         <button type="button" class="th-sort-btn" data-sort-key="${escapeHtml(c.key)}" aria-label="Sort by ${escapeHtml(c.label)}">
           <span class="th-sort-label">${escapeHtml(c.label)}</span>
           <span class="sort-ind" aria-hidden="true"></span>
         </button>
       </th>`;
-    }).join("");
+      })
+      .join("");
   }
 
   function getRowsForView() {
@@ -1646,7 +1716,7 @@
         const v = r[c.key];
         const cls = c.type === "text" ? "" : c.type;
         if (c.key === "familyName") {
-          return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
+          return `<td class="${cls}">${formatFamilyNameCellWithInclude(v)}</td>`;
         }
         if (c.type === "pct") {
           return `<td class="pct">${statValueWithAvg(v, c, avgByCol)}</td>`;
@@ -1659,7 +1729,7 @@
         return `<td class="${cls}">${statValueWithAvg(v, c, avgByCol)}</td>`;
       })
       .join("");
-    return `<tr class="${tierClass}">${tds}</tr>`;
+    return `<tr class="${tierClass}${rowInclusionClass(r)}">${tds}</tr>`;
   }
 
   function renderGroupedAnalysisRows(filtered, ranked, avgByCol) {
@@ -1735,6 +1805,7 @@
     countEl.textContent = formatPlayerCountText(filtered.length, total, "roster members");
 
     if (!filtered.length) {
+      lastVisibleRows = [];
       const emptyMsg =
         q || selectedTeamFilters.size
           ? "No matching players for the current filters."
@@ -1742,10 +1813,18 @@
       tbody.innerHTML = `<tr><td colspan="${ATTENDANCE_COLS.length}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
       tfoot.innerHTML = "";
       applyHeaderSortIndicators();
+      updateCheckAllState([]);
       return;
     }
 
-    const avgByCol = computeColumnAverages(filtered, ATTENDANCE_COLS);
+    const avgRows = rowsForAverages(filtered);
+    const avgByCol = computeColumnAverages(avgRows, ATTENDANCE_COLS);
+    lastVisibleRows = filtered;
+
+    const includedCount = avgRows.length;
+    if (includedCount < filtered.length) {
+      countEl.textContent = `${formatPlayerCountText(filtered.length, total, "roster members")} · ${includedCount} in averages`;
+    }
 
     tbody.innerHTML = filtered
       .map((r) => {
@@ -1753,7 +1832,7 @@
           const v = r[c.key];
           const cls = c.type === "text" ? "" : c.type;
           if (c.key === "familyName") {
-            return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
+            return `<td class="${cls}">${formatFamilyNameCellWithInclude(v)}</td>`;
           }
           if (c.key === "team" && v && v !== "—") {
             return `<td class="${cls}">${formatTeamBadges(getMemberTeams(r.familyName))}</td>`;
@@ -1769,20 +1848,22 @@
                 : "";
           return `<td class="${cls}${mark}">${statValueWithAvg(v, c, avgByCol)}</td>`;
         }).join("");
-        return `<tr>${tds}</tr>`;
+        return `<tr class="${rowInclusionClass(r).trim()}">${tds}</tr>`;
       })
       .join("");
 
-    const totalNode = filtered.reduce((sum, r) => sum + r.nodeWars, 0);
-    const totalSiege = filtered.reduce((sum, r) => sum + r.siege, 0);
+    const avgN = avgRows.length;
+    const totalNode = avgRows.reduce((sum, r) => sum + r.nodeWars, 0);
+    const totalSiege = avgRows.reduce((sum, r) => sum + r.siege, 0);
     tfoot.innerHTML = `<tr>
-      <td>Averages (${filtered.length})</td>
+      <td>Averages (${avgN})</td>
       <td></td>
-      <td class="num">${escapeHtml(formatAvgNumber(totalNode / filtered.length))}</td>
-      <td class="num">${escapeHtml(formatAvgNumber(totalSiege / filtered.length))}</td>
+      <td class="num">${avgN ? escapeHtml(formatAvgNumber(totalNode / avgN)) : "—"}</td>
+      <td class="num">${avgN ? escapeHtml(formatAvgNumber(totalSiege / avgN)) : "—"}</td>
     </tr>`;
 
     applyHeaderSortIndicators();
+    updateCheckAllState(filtered);
   }
 
   function renderWarAnalysisBody() {
@@ -1812,6 +1893,7 @@
 
     const colCount = getActiveCols().length;
     if (!filtered.length) {
+      lastVisibleRows = [];
       const emptyMsg = total
         ? q || selectedTeamFilters.size
           ? "No matching players for the current filters."
@@ -1820,13 +1902,21 @@
       tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
       tfoot.innerHTML = "";
       applyHeaderSortIndicators();
+      updateCheckAllState([]);
       return;
     }
 
-    const avgByCol = computeColumnAverages(filtered);
+    const avgRows = rowsForAverages(filtered);
+    const avgByCol = computeColumnAverages(avgRows);
+    lastVisibleRows = filtered;
+
+    const includedCount = avgRows.length;
+    if (includedCount < filtered.length) {
+      countEl.textContent = `${formatPlayerCountText(filtered.length, total, "players")} · ${includedCount} in averages`;
+    }
     tbody.innerHTML = renderGroupedAnalysisRows(filtered, ranked, avgByCol);
 
-    const avgRow = computeAverageRow(filtered);
+    const avgRow = computeAverageRow(avgRows);
     tfoot.innerHTML = avgRow
       ? `<tr>${getActiveCols()
           .map((c) => {
@@ -1842,6 +1932,7 @@
       : "";
 
     applyHeaderSortIndicators();
+    updateCheckAllState(filtered);
   }
 
   function renderBody() {
@@ -1884,6 +1975,7 @@
     countEl.textContent = formatPlayerCountText(filtered.length, total, "players");
 
     if (!filtered.length) {
+      lastVisibleRows = [];
       const emptyMsg =
         q || selectedTeamFilters.size
           ? "No matching players for the current filters."
@@ -1891,10 +1983,18 @@
       tbody.innerHTML = `<tr><td colspan="${getActiveCols().length}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
       tfoot.innerHTML = "";
       applyHeaderSortIndicators();
+      updateCheckAllState([]);
       return;
     }
 
-    const avgByCol = computeColumnAverages(filtered);
+    const avgRows = rowsForAverages(filtered);
+    const avgByCol = computeColumnAverages(avgRows);
+    lastVisibleRows = filtered;
+
+    const includedCount = avgRows.length;
+    if (includedCount < filtered.length) {
+      countEl.textContent = `${formatPlayerCountText(filtered.length, total, "players")} · ${includedCount} in averages`;
+    }
 
     tbody.innerHTML = filtered
       .map((r) => {
@@ -1903,7 +2003,7 @@
           const v = r[c.key];
           const cls = c.type === "text" ? "" : c.type;
           if (c.key === "familyName") {
-            return `<td class="${cls}">${formatFamilyNameCell(v)}</td>`;
+            return `<td class="${cls}">${formatFamilyNameCellWithInclude(v)}</td>`;
           }
           if (
             (c.key === "nodeWar" || c.key === "siege") &&
@@ -1919,11 +2019,11 @@
           }
           return `<td class="${cls}">${statValueWithAvg(v, c, avgByCol)}</td>`;
         }).join("");
-        return `<tr>${tds}</tr>`;
+        return `<tr class="${rowInclusionClass(r).trim()}">${tds}</tr>`;
       })
       .join("");
 
-    const avgRow = computeAverageRow(filtered);
+    const avgRow = computeAverageRow(avgRows);
     tfoot.innerHTML = avgRow
       ? `<tr>${getActiveCols().map((c) => {
           const v = avgRow[c.key];
@@ -1933,6 +2033,7 @@
       : "";
 
     applyHeaderSortIndicators();
+    updateCheckAllState(filtered);
   }
 
   function populateDateSelect() {
@@ -1999,6 +2100,7 @@
 
   function setView(view) {
     resetSort();
+    excludedPlayers.clear();
     currentView = view;
     if (isWarAnalysisView(view)) {
       sortKey = "score";
@@ -2046,12 +2148,14 @@
 
     dateSelect.addEventListener("change", function () {
       currentDate = this.value;
+      excludedPlayers.clear();
       renderBody();
     });
 
     weekSelect.addEventListener("change", function () {
       currentWeekSunday = this.value;
       if (currentView === VIEW.ATTENDANCE) attendanceScopeMode = "week";
+      excludedPlayers.clear();
       updateScopeVisibility();
       renderBody();
     });
@@ -2059,6 +2163,7 @@
     monthSelect.addEventListener("change", function () {
       currentMonth = this.value;
       if (currentView === VIEW.ATTENDANCE) attendanceScopeMode = "month";
+      excludedPlayers.clear();
       updateScopeVisibility();
       renderBody();
     });
@@ -2085,6 +2190,26 @@
     }
 
     const tableEl = thead.closest("table");
+    tableEl.addEventListener("change", (e) => {
+      const input = e.target.closest(".player-include-input");
+      if (!input) return;
+      if (input.classList.contains("player-include-all-input")) {
+        const keys = lastVisibleRows.map((r) => playerInclusionKey(r)).filter(Boolean);
+        if (input.checked) {
+          for (const k of keys) excludedPlayers.delete(k);
+        } else {
+          for (const k of keys) excludedPlayers.add(k);
+        }
+        renderBody();
+        return;
+      }
+      const key = input.dataset.playerKey;
+      if (!key) return;
+      if (input.checked) excludedPlayers.delete(key);
+      else excludedPlayers.add(key);
+      renderBody();
+    });
+
     tableEl.addEventListener("click", (e) => {
       const btn = e.target.closest(".th-sort-btn");
       if (!btn || !thead.contains(btn)) return;
