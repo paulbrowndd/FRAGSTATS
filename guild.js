@@ -4,7 +4,6 @@
  */
 window.GUILD_ROSTER = [
   "Afary",
-  "Anime_Inspired",
   "Atmospheric",
   "AyanamiRei",
   "Beights",
@@ -57,6 +56,7 @@ window.GUILD_ROSTER = [
   "MyFamilyName",
   "NemesisProgram",
   "Netsrik",
+  "NonToxicPlayer",
   "Odaa",
   "Odin_Clan",
   "PinguFamily",
@@ -97,7 +97,6 @@ window.GUILD_ROSTER = [
 /** Member family name → team role */
 window.GUILD_MEMBER_TEAMS = {
   Afary: "Flag Placer",
-  Anime_Inspired: "Shai",
   Atmospheric: "Ball",
   AyanamiRei: "Ball",
   Beights: "Ball",
@@ -150,6 +149,7 @@ window.GUILD_MEMBER_TEAMS = {
   MyFamilyName: "Sailor",
   NemesisProgram: "D-Flex",
   Netsrik: "Defense",
+  NonToxicPlayer: "Ball",
   Odaa: "Shotcaller",
   Odin_Clan: "Ball",
   PinguFamily: "Ball",
