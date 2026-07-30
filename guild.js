@@ -154,7 +154,7 @@ window.GUILD_MEMBER_TEAMS = {
   NemesisProgram: "D-Flex",
   Netsrik: "Defense",
   NonToxicPlayer: "Ball",
-  Odaa: "Shotcaller",
+  Odaa: "Shotcaller, Ball",
   Odin_Clan: "Ball",
   PinguFamily: "Ball",
   Pivva: "Support",
