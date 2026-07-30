@@ -43099,7 +43099,7 @@ window.NODE_WAR_DATA = {
         "ccHits": 75,
         "hpHealed": "142.4K",
         "allyHp": "23.7K",
-        "totalDamageToFort": "22.2M",
+        "totalDamageToFort": "9M",
         "cannonHits": 0,
         "objectsDestroyedCannon": 0,
         "maxCannonHitDistance": 0,
