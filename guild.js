@@ -277,3 +277,9 @@ window.GUILD_NAME_ALIASES = {
   "Zoya": "Zoyac",
   "Zoyae": "Zoyac",
 };
+
+/** Excluded from MVP scoring and leaderboards; war stats still appear in tables. */
+window.GUILD_MVP_EXCLUDED = [
+  "Iarsen",
+  "Trooperr",
+];

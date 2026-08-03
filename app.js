@@ -839,10 +839,12 @@
     const prevDates = datesInMonth(data, previousMonthKey(monthKey));
     if (!prevDates.length) return null;
     const rows = aggregateByFamily(data, prevDates);
-    const scopedRows = defense ? filterDefenseRows(rows) : filterGuildRows(rows);
+    const scopedRows = filterMvpEligibleRows(
+      defense ? filterDefenseRows(rows) : filterGuildRows(rows)
+    );
     if (!scopedRows.length) return null;
     const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
-    const winner = ranked[0];
+    const winner = mvpEligibleEntries(ranked)[0];
     return winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
   }
 
@@ -1146,15 +1148,35 @@
     return resolveGuildName(familyName) || familyName;
   }
 
-  /** Drop prior month's MVP winner from ranked list (ineligible to repeat). */
+  function getMvpExcludedSet() {
+    const defaults = ["Iarsen", "Trooperr"];
+    const fromGuild = window.GUILD_MVP_EXCLUDED || [];
+    const merged = [...new Set([...defaults, ...fromGuild])];
+    return new Set(merged.map((n) => String(n).toLowerCase()));
+  }
+
+  function isMvpExcluded(familyName) {
+    const canon = canonicalFamilyName(familyName);
+    return getMvpExcludedSet().has(String(canon).toLowerCase());
+  }
+
+  /** Drop MVP-ineligible members before scoring (their stats won't set category highs). */
+  function filterMvpEligibleRows(rows) {
+    return rows.filter((r) => !isMvpExcluded(r.familyName));
+  }
+
+  /** Drop prior month's MVP winner and permanently excluded members. */
   function mvpEligibleEntries(ranked, excludeFamilyName = null) {
-    if (!excludeFamilyName) return ranked;
-    const excludeCanon = canonicalFamilyName(excludeFamilyName);
-    return ranked.filter((entry) => canonicalFamilyName(entry.familyName) !== excludeCanon);
+    let list = ranked.filter((entry) => !isMvpExcluded(entry.familyName));
+    if (excludeFamilyName) {
+      const excludeCanon = canonicalFamilyName(excludeFamilyName);
+      list = list.filter((entry) => canonicalFamilyName(entry.familyName) !== excludeCanon);
+    }
+    return list;
   }
 
   function renderMvpLeaderboard(leaderboardEl, ranked, topN = 10, excludeFamilyName = null) {
-    const list = mvpEligibleEntries(ranked, excludeFamilyName);
+    const list = excludeFamilyName ? mvpEligibleEntries(ranked, excludeFamilyName) : ranked;
     leaderboardEl.innerHTML = list.slice(0, topN)
       .map((entry, i) => {
         const first = i === 0 ? " mvp-rank-item--first" : "";
@@ -1169,7 +1191,7 @@
 
   function renderMvpSection(rows) {
     if (!mvpSection) return;
-    const guildRows = filterGuildRows(rows);
+    const guildRows = filterMvpEligibleRows(filterGuildRows(rows));
     const show = currentView === VIEW.MONTHLY && guildRows.length > 0;
     mvpSection.hidden = !show;
     if (!show) return;
@@ -1200,7 +1222,7 @@
       </div>`
     ).join("");
 
-    renderMvpLeaderboard(mvpLeaderboard, ranked, 10, prevWinner);
+    renderMvpLeaderboard(mvpLeaderboard, eligible, 10);
   }
 
   function renderDefenseMvpSection(rows) {
@@ -1876,10 +1898,11 @@
 
     const guildFiltered = filterGuildRows(rows);
     const teamFiltered = applyTeamFilter(guildFiltered);
-    const ranked = computeMvpScores(teamFiltered);
+    const mvpPool = filterMvpEligibleRows(teamFiltered);
+    const ranked = computeMvpScores(mvpPool);
     renderWarAnalysisPanel(ranked, meta);
 
-    const analysisRows = rankedToAnalysisRows(ranked, teamFiltered);
+    const analysisRows = rankedToAnalysisRows(ranked, mvpPool);
     const q = (search.value || "").trim().toLowerCase();
     const total = analysisRows.length;
     let filtered = q
