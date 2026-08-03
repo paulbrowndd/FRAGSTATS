@@ -213,6 +213,7 @@ window.GUILD_NAME_ALIASES = {
   "Conladch": "Conlaoch",
   "CM_YAMI": "CM_Yami",
   "Dalua_Shd": "Dalua_Shd",
+  "Darkliden": "Darkiden",
   "Dalu_Shd": "Dalua_Shd",
   "DrShortstuff": "DrShortstuf",
   "FletesFamily": "FleitesFamily",
