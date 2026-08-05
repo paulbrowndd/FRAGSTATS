@@ -688,6 +688,17 @@ body {
   color: var(--accent-bright);
 }
 
+.war-analysis-prior-mvps {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.war-analysis-prior-mvps strong {
+  color: var(--accent-bright);
+}
+
 tbody tr.analysis-group-header td {
   padding: 0.55rem 0.65rem;
   font-size: 0.68rem;

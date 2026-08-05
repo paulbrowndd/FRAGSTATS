@@ -73,6 +73,7 @@
   const warAnalysisSub = document.getElementById("war-analysis-sub");
   const warAnalysisFormula = document.getElementById("war-analysis-formula");
   const warAnalysisSummary = document.getElementById("war-analysis-summary");
+  const warAnalysisPriorMvps = document.getElementById("war-analysis-prior-mvps");
 
   const MVP_COMPONENTS = [
     { key: "enemyKills", label: "Enemy kills", weight: 0.2 },
@@ -836,16 +837,49 @@
 
   /** Prior calendar month's MVP winner, or null if that month has no logged wars. */
   function getPreviousMonthMvpWinner(data, monthKey, { defense = false } = {}) {
-    const prevDates = datesInMonth(data, previousMonthKey(monthKey));
+    const prevKey = previousMonthKey(monthKey);
+    const prevDates = datesInMonth(data, prevKey);
     if (!prevDates.length) return null;
     const rows = aggregateByFamily(data, prevDates);
-    const scopedRows = filterMvpEligibleRows(
+    const scopedRows = filterMvpPermanentlyExcludedRows(
       defense ? filterDefenseRows(rows) : filterGuildRows(rows)
     );
     if (!scopedRows.length) return null;
     const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
-    const winner = mvpEligibleEntries(ranked)[0];
+    const winner = ranked[0];
     return winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
+  }
+
+  /** Recent MVP winners before the analysis month (newest first). */
+  function getPriorMonthMvpWinners(data, monthKey, maxMonths = 12) {
+    if (!monthKey) return [];
+    const winners = [];
+    let cursor = monthKey;
+    for (let i = 0; i < maxMonths; i++) {
+      const prevKey = previousMonthKey(cursor);
+      if (!datesInMonth(data, prevKey).length) break;
+      const winner = getPreviousMonthMvpWinner(data, cursor);
+      if (!winner) break;
+      const rows = aggregateByFamily(data, datesInMonth(data, prevKey));
+      const scopedRows = filterMvpPermanentlyExcludedRows(filterGuildRows(rows));
+      const ranked = computeMvpScores(scopedRows);
+      const entry = ranked.find(
+        (e) => canonicalFamilyName(e.familyName) === canonicalFamilyName(winner)
+      );
+      winners.push({
+        monthKey: prevKey,
+        label: formatMonthLabel(prevKey),
+        familyName: winner,
+        score: entry?.score ?? 0,
+      });
+      cursor = prevKey;
+    }
+    return winners;
+  }
+
+  function getAnalysisContextMonthKey(data) {
+    const keys = getPeriodDateKeys(data);
+    return keys[0] ? monthKeyUTC(keys[0]) : null;
   }
 
   function parseGameNumber(s) {
@@ -1160,14 +1194,19 @@
     return getMvpExcludedSet().has(String(canon).toLowerCase());
   }
 
-  /** Drop MVP-ineligible members before scoring (their stats won't set category highs). */
-  function filterMvpEligibleRows(rows) {
+  /** Drop permanently MVP-ineligible members (war stats still appear elsewhere). */
+  function filterMvpPermanentlyExcludedRows(rows) {
     return rows.filter((r) => !isMvpExcluded(r.familyName));
   }
 
-  /** Drop prior month's MVP winner and permanently excluded members. */
+  /** Monthly MVP scoring pool — permanently excluded members can't set category highs. */
+  function filterMvpEligibleRows(rows) {
+    return filterMvpPermanentlyExcludedRows(rows);
+  }
+
+  /** Drop prior month's MVP winner; used on Monthly MVP page only. */
   function mvpEligibleEntries(ranked, excludeFamilyName = null) {
-    let list = ranked.filter((entry) => !isMvpExcluded(entry.familyName));
+    let list = ranked.slice();
     if (excludeFamilyName) {
       const excludeCanon = canonicalFamilyName(excludeFamilyName);
       list = list.filter((entry) => canonicalFamilyName(entry.familyName) !== excludeCanon);
@@ -1698,7 +1737,7 @@
     if (warAnalysisPanel) warAnalysisPanel.hidden = true;
   }
 
-  function renderWarAnalysisPanel(ranked, meta) {
+  function renderWarAnalysisPanel(ranked, meta, data) {
     if (!warAnalysisPanel) return;
     const show = isWarAnalysisView() && ranked.length > 0;
     warAnalysisPanel.hidden = !show;
@@ -1713,7 +1752,7 @@
     const periodLabel =
       currentView === VIEW.WEEKLY_ANALYSIS ? "weekly" : "monthly";
     if (warAnalysisSub) {
-      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers.`;
+      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers. Prior month MVP winners are included here; they are excluded only on the Monthly MVP tab.`;
     }
 
     if (warAnalysisFormula) {
@@ -1728,6 +1767,20 @@
     const { high, low, medianScore } = splitHighLowPerformers(ranked);
     if (warAnalysisSummary) {
       warAnalysisSummary.innerHTML = `<strong>${high.length}</strong> high performers · <strong>${low.length}</strong> low performers · split near <strong>${escapeHtml(formatMvpScore(medianScore))}</strong>`;
+    }
+
+    if (warAnalysisPriorMvps) {
+      const monthKey = getAnalysisContextMonthKey(data);
+      const priorWinners = getPriorMonthMvpWinners(data, monthKey);
+      warAnalysisPriorMvps.innerHTML = priorWinners.length
+        ? `<strong>Prior month MVPs:</strong> ${priorWinners
+            .map(
+              (w) =>
+                `${escapeHtml(w.label)} — ${formatFamilyNameCell(w.familyName)} (${escapeHtml(formatMvpScore(w.score))})`
+            )
+            .join(" · ")}`
+        : "";
+      warAnalysisPriorMvps.hidden = !priorWinners.length;
     }
   }
 
@@ -1898,11 +1951,10 @@
 
     const guildFiltered = filterGuildRows(rows);
     const teamFiltered = applyTeamFilter(guildFiltered);
-    const mvpPool = filterMvpEligibleRows(teamFiltered);
-    const ranked = computeMvpScores(mvpPool);
-    renderWarAnalysisPanel(ranked, meta);
+    const ranked = computeMvpScores(teamFiltered);
+    renderWarAnalysisPanel(ranked, meta, data);
 
-    const analysisRows = rankedToAnalysisRows(ranked, mvpPool);
+    const analysisRows = rankedToAnalysisRows(ranked, teamFiltered);
     const q = (search.value || "").trim().toLowerCase();
     const total = analysisRows.length;
     let filtered = q
