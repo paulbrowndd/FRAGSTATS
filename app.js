@@ -1089,20 +1089,22 @@
   }
 
   /** MVP-weighted score vs guild-high for each category. */
-  function computeMvpScores(rows) {
+  function computeMvpScores(rows, { maxRows = null } = {}) {
     if (!rows.length) return [];
+    const maxSource = maxRows && maxRows.length ? maxRows : rows;
     const withMetrics = rows.map((row) => ({
       familyName: row.familyName,
       m: mvpMetricsFromRow(row),
     }));
+    const maxMetrics = maxSource.map((row) => mvpMetricsFromRow(row));
     const max = {};
     for (const c of MVP_COMPONENTS) {
       if (c.key === "deaths") {
-        max.deaths = Math.max(...withMetrics.map((x) => x.m.deaths));
+        max.deaths = Math.max(...maxMetrics.map((m) => m.deaths));
       } else if (c.key === "healing") {
-        max.healing = Math.max(...withMetrics.map((x) => x.m.healing));
+        max.healing = Math.max(...maxMetrics.map((m) => m.healing));
       } else {
-        max[c.key] = Math.max(...withMetrics.map((x) => x.m[c.key]));
+        max[c.key] = Math.max(...maxMetrics.map((m) => m[c.key]));
       }
     }
 
@@ -1111,11 +1113,13 @@
         const parts = {};
         for (const c of MVP_COMPONENTS) {
           if (c.key === "deaths") {
-            parts.deaths = c.weight * (max.deaths > 0 ? 1 - m.deaths / max.deaths : 1);
+            parts.deaths =
+              c.weight *
+              Math.max(0, max.deaths > 0 ? 1 - m.deaths / max.deaths : 1);
           } else if (c.key === "healing") {
-            parts.healing = c.weight * safeRatio(m.healing, max.healing);
+            parts.healing = c.weight * Math.min(1, safeRatio(m.healing, max.healing));
           } else {
-            parts[c.key] = c.weight * safeRatio(m[c.key], max[c.key]);
+            parts[c.key] = c.weight * Math.min(1, safeRatio(m[c.key], max[c.key]));
           }
         }
         const score = Object.values(parts).reduce((sum, v) => sum + v, 0);
@@ -1809,11 +1813,6 @@
 
   function renderGroupedAnalysisRows(filtered, ranked, avgByCol) {
     const cols = getActiveCols().length;
-    const useGroups = !sortKey || sortKey === "score";
-    if (!useGroups) {
-      return filtered.map((r) => renderAnalysisTableRow(r, "", avgByCol)).join("");
-    }
-
     const { high, low } = splitHighLowPerformers(ranked);
     const highNames = new Set(high.map((e) => e.familyName));
     const lowNames = new Set(low.map((e) => e.familyName));
@@ -1821,8 +1820,15 @@
     const byRank = (a, b) =>
       (rankOrder.get(a.familyName) ?? 999) - (rankOrder.get(b.familyName) ?? 999);
 
-    const highRows = filtered.filter((r) => highNames.has(r.familyName)).sort(byRank);
-    const lowRows = filtered.filter((r) => lowNames.has(r.familyName)).sort(byRank);
+    const sortGroup = (rows) => {
+      if (!sortKey || sortKey === "score") {
+        return [...rows].sort(byRank);
+      }
+      return sortRowsInPlace([...rows]);
+    };
+
+    const highRows = sortGroup(filtered.filter((r) => highNames.has(r.familyName)));
+    const lowRows = sortGroup(filtered.filter((r) => lowNames.has(r.familyName)));
     let html = "";
 
     if (highRows.length) {
@@ -1946,23 +1952,26 @@
     if (attendancePanel) attendancePanel.hidden = true;
     renderHead();
 
+    const data = getWarData();
     const { rows, meta } = getRowsForView();
     metaEl.textContent = meta;
 
     const guildFiltered = filterGuildRows(rows);
     const teamFiltered = applyTeamFilter(guildFiltered);
-    const ranked = computeMvpScores(teamFiltered);
+    const scoreMaxPool = filterMvpPermanentlyExcludedRows(teamFiltered);
+    const ranked = computeMvpScores(teamFiltered, {
+      maxRows: scoreMaxPool.length ? scoreMaxPool : teamFiltered,
+    });
     renderWarAnalysisPanel(ranked, meta, data);
 
     const analysisRows = rankedToAnalysisRows(ranked, teamFiltered);
     const q = (search.value || "").trim().toLowerCase();
     const total = analysisRows.length;
-    let filtered = q
+    const filtered = q
       ? analysisRows.filter((r) =>
           String(r.familyName).toLowerCase().includes(q)
         )
       : analysisRows.slice();
-    filtered = sortRowsInPlace(filtered);
 
     countEl.textContent = formatPlayerCountText(filtered.length, total, "players");
 
