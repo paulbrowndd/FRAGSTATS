@@ -289,3 +289,12 @@ window.GUILD_MVP_EXCLUDED = [
   "Iarsen",
   "Trooperr",
 ];
+
+/** Recorded monthly MVP winners (YYYY-MM). Used for repeat-win exclusion and analysis history. */
+window.GUILD_MVP_WINNERS = {
+  "2026-06": "Trooperr",
+  "2026-07": "Iarsen",
+};
+
+/** Months a member must wait after winning before they can win MVP again. */
+window.GUILD_MVP_COOLDOWN_MONTHS = 3;

@@ -836,18 +836,67 @@
   }
 
   /** Prior calendar month's MVP winner, or null if that month has no logged wars. */
+  function getRecordedMvpWinner(monthKey) {
+    const map = window.GUILD_MVP_WINNERS;
+    if (!map || typeof map !== "object") return null;
+    const raw = map[monthKey];
+    if (!raw) return null;
+    return resolveGuildName(raw) || raw;
+  }
+
   function getPreviousMonthMvpWinner(data, monthKey, { defense = false } = {}) {
     const prevKey = previousMonthKey(monthKey);
-    const prevDates = datesInMonth(data, prevKey);
-    if (!prevDates.length) return null;
-    const rows = aggregateByFamily(data, prevDates);
-    const scopedRows = filterMvpPermanentlyExcludedRows(
-      defense ? filterDefenseRows(rows) : filterGuildRows(rows)
-    );
+    return getMonthMvpWinner(data, prevKey, { defense });
+  }
+
+  function getMvpCooldownMonths() {
+    const n = Number(window.GUILD_MVP_COOLDOWN_MONTHS);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 3;
+  }
+
+  /** Winners from each of the prior N months who are still on cooldown this month. */
+  function getMvpCooldownExclusions(data, monthKey, { defense = false } = {}) {
+    const excluded = new Set();
+    let cursor = monthKey;
+    for (let i = 0; i < getMvpCooldownMonths(); i++) {
+      cursor = previousMonthKey(cursor);
+      const winner = getMonthMvpWinner(data, cursor, { defense });
+      if (!winner || isMvpExcluded(winner)) continue;
+      excluded.add(String(canonicalFamilyName(winner)).toLowerCase());
+    }
+    return excluded;
+  }
+
+  function getMonthMvpWinner(data, monthKey, { defense = false } = {}) {
+    const entry = getMonthMvpWinnerEntry(data, monthKey, { defense });
+    return entry ? entry.familyName : null;
+  }
+
+  function getMonthMvpWinnerEntry(data, monthKey, { defense = false } = {}) {
+    const dates = datesInMonth(data, monthKey);
+    if (!dates.length) return null;
+
+    const rows = aggregateByFamily(data, dates);
+    const scopedRows = defense ? filterDefenseRows(rows) : filterGuildRows(rows);
     if (!scopedRows.length) return null;
+
     const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
-    const winner = ranked[0];
-    return winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
+    let familyName = getRecordedMvpWinner(monthKey);
+    if (!familyName) {
+      const winner = ranked[0];
+      familyName = winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
+    }
+    if (!familyName) return null;
+
+    const entry = ranked.find(
+      (e) => canonicalFamilyName(e.familyName) === canonicalFamilyName(familyName)
+    );
+    return {
+      monthKey,
+      label: formatMonthLabel(monthKey),
+      familyName,
+      score: entry?.score ?? 0,
+    };
   }
 
   /** Recent MVP winners before the analysis month (newest first). */
@@ -857,21 +906,9 @@
     let cursor = monthKey;
     for (let i = 0; i < maxMonths; i++) {
       const prevKey = previousMonthKey(cursor);
-      if (!datesInMonth(data, prevKey).length) break;
-      const winner = getPreviousMonthMvpWinner(data, cursor);
-      if (!winner) break;
-      const rows = aggregateByFamily(data, datesInMonth(data, prevKey));
-      const scopedRows = filterMvpPermanentlyExcludedRows(filterGuildRows(rows));
-      const ranked = computeMvpScores(scopedRows);
-      const entry = ranked.find(
-        (e) => canonicalFamilyName(e.familyName) === canonicalFamilyName(winner)
-      );
-      winners.push({
-        monthKey: prevKey,
-        label: formatMonthLabel(prevKey),
-        familyName: winner,
-        score: entry?.score ?? 0,
-      });
+      const entry = getMonthMvpWinnerEntry(data, prevKey);
+      if (!entry) break;
+      winners.push(entry);
       cursor = prevKey;
     }
     return winners;
@@ -1208,18 +1245,22 @@
     return filterMvpPermanentlyExcludedRows(rows);
   }
 
-  /** Drop prior month's MVP winner; used on Monthly MVP page only. */
-  function mvpEligibleEntries(ranked, excludeFamilyName = null) {
+  /** Drop recent MVP winners on cooldown; used on Monthly MVP page only. */
+  function mvpEligibleEntries(ranked, excludeNames = null) {
     let list = ranked.slice();
-    if (excludeFamilyName) {
-      const excludeCanon = canonicalFamilyName(excludeFamilyName);
-      list = list.filter((entry) => canonicalFamilyName(entry.familyName) !== excludeCanon);
-    }
-    return list;
+    if (!excludeNames) return list;
+    const excludeSet =
+      excludeNames instanceof Set
+        ? excludeNames
+        : new Set([String(canonicalFamilyName(excludeNames)).toLowerCase()]);
+    if (!excludeSet.size) return list;
+    return list.filter(
+      (entry) => !excludeSet.has(String(canonicalFamilyName(entry.familyName)).toLowerCase())
+    );
   }
 
-  function renderMvpLeaderboard(leaderboardEl, ranked, topN = 10, excludeFamilyName = null) {
-    const list = excludeFamilyName ? mvpEligibleEntries(ranked, excludeFamilyName) : ranked;
+  function renderMvpLeaderboard(leaderboardEl, ranked, topN = 10, excludeNames = null) {
+    const list = excludeNames ? mvpEligibleEntries(ranked, excludeNames) : ranked;
     leaderboardEl.innerHTML = list.slice(0, topN)
       .map((entry, i) => {
         const first = i === 0 ? " mvp-rank-item--first" : "";
@@ -1243,8 +1284,8 @@
     const data = getWarData();
     const monthKeys = getPeriodDateKeys(data);
     const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
-    const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey) : null;
-    const eligible = mvpEligibleEntries(ranked, prevWinner);
+    const cooldown = monthKey ? getMvpCooldownExclusions(data, monthKey) : new Set();
+    const eligible = mvpEligibleEntries(ranked, cooldown);
     const winner = eligible[0];
 
     mvpWinner.innerHTML = winner
@@ -1281,8 +1322,10 @@
     if (defenseRows.length > 0) {
       const ranked = computeDefenseMvpScores(defenseRows);
       const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
-      const prevWinner = monthKey ? getPreviousMonthMvpWinner(data, monthKey, { defense: true }) : null;
-      const eligible = mvpEligibleEntries(ranked, prevWinner);
+      const cooldown = monthKey
+        ? getMvpCooldownExclusions(data, monthKey, { defense: true })
+        : new Set();
+      const eligible = mvpEligibleEntries(ranked, cooldown);
       const winner = eligible[0];
 
       defenseMvpWinner.innerHTML = winner
@@ -1303,7 +1346,7 @@
         </div>`
       ).join("");
 
-      renderMvpLeaderboard(defenseMvpLeaderboard, ranked, 10, prevWinner);
+      renderMvpLeaderboard(defenseMvpLeaderboard, eligible, 10);
     } else {
       defenseMvpWinner.innerHTML = `
         <p class="mvp-winner-label">Defense MVP</p>
@@ -1756,7 +1799,7 @@
     const periodLabel =
       currentView === VIEW.WEEKLY_ANALYSIS ? "weekly" : "monthly";
     if (warAnalysisSub) {
-      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers. Prior month MVP winners are included here; they are excluded only on the Monthly MVP tab.`;
+      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers. Recent MVP winners on cooldown are included here; they are excluded only on the Monthly MVP tab.`;
     }
 
     if (warAnalysisFormula) {
