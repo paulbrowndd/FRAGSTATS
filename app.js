@@ -861,7 +861,7 @@
     for (let i = 0; i < getMvpCooldownMonths(); i++) {
       cursor = previousMonthKey(cursor);
       const winner = getMonthMvpWinner(data, cursor, { defense });
-      if (!winner || isMvpExcluded(winner)) continue;
+      if (!winner) continue;
       excluded.add(String(canonicalFamilyName(winner)).toLowerCase());
     }
     return excluded;
@@ -1224,10 +1224,8 @@
   }
 
   function getMvpExcludedSet() {
-    const defaults = ["Iarsen", "Trooperr"];
     const fromGuild = window.GUILD_MVP_EXCLUDED || [];
-    const merged = [...new Set([...defaults, ...fromGuild])];
-    return new Set(merged.map((n) => String(n).toLowerCase()));
+    return new Set(fromGuild.map((n) => String(n).toLowerCase()));
   }
 
   function isMvpExcluded(familyName) {
@@ -1235,12 +1233,11 @@
     return getMvpExcludedSet().has(String(canon).toLowerCase());
   }
 
-  /** Drop permanently MVP-ineligible members (war stats still appear elsewhere). */
+  /** Optional manual MVP exclusions from guild config. */
   function filterMvpPermanentlyExcludedRows(rows) {
     return rows.filter((r) => !isMvpExcluded(r.familyName));
   }
 
-  /** Monthly MVP scoring pool — permanently excluded members can't set category highs. */
   function filterMvpEligibleRows(rows) {
     return filterMvpPermanentlyExcludedRows(rows);
   }
@@ -1275,18 +1272,29 @@
 
   function renderMvpSection(rows) {
     if (!mvpSection) return;
-    const guildRows = filterMvpEligibleRows(filterGuildRows(rows));
+    const data = getWarData();
+    const guildRows = filterGuildRows(rows);
     const show = currentView === VIEW.MONTHLY && guildRows.length > 0;
     mvpSection.hidden = !show;
     if (!show) return;
 
-    const ranked = computeMvpScores(guildRows);
-    const data = getWarData();
     const monthKeys = getPeriodDateKeys(data);
     const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
+    const ranked = computeMvpScores(guildRows);
     const cooldown = monthKey ? getMvpCooldownExclusions(data, monthKey) : new Set();
     const eligible = mvpEligibleEntries(ranked, cooldown);
-    const winner = eligible[0];
+
+    const recorded = monthKey ? getRecordedMvpWinner(monthKey) : null;
+    let winner = null;
+    if (recorded) {
+      winner =
+        ranked.find(
+          (entry) =>
+            canonicalFamilyName(entry.familyName) === canonicalFamilyName(recorded)
+        ) || null;
+    } else {
+      winner = eligible[0] || null;
+    }
 
     mvpWinner.innerHTML = winner
       ? `
@@ -2001,10 +2009,7 @@
 
     const guildFiltered = filterGuildRows(rows);
     const teamFiltered = applyTeamFilter(guildFiltered);
-    const scoreMaxPool = filterMvpPermanentlyExcludedRows(teamFiltered);
-    const ranked = computeMvpScores(teamFiltered, {
-      maxRows: scoreMaxPool.length ? scoreMaxPool : teamFiltered,
-    });
+    const ranked = computeMvpScores(teamFiltered);
     renderWarAnalysisPanel(ranked, meta, data);
 
     const analysisRows = rankedToAnalysisRows(ranked, teamFiltered);

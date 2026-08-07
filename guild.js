@@ -284,11 +284,8 @@ window.GUILD_NAME_ALIASES = {
   "Zoyae": "Zoyac",
 };
 
-/** Excluded from MVP scoring and leaderboards; war stats still appear in tables. */
-window.GUILD_MVP_EXCLUDED = [
-  "Iarsen",
-  "Trooperr",
-];
+/** Optional manual MVP exclusions (rare). Normal repeat rule is the cooldown below. */
+window.GUILD_MVP_EXCLUDED = [];
 
 /** Recorded monthly MVP winners (YYYY-MM). Used for repeat-win exclusion and analysis history. */
 window.GUILD_MVP_WINNERS = {
