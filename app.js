@@ -99,9 +99,9 @@
   };
 
   const HEALER_MVP_COMPONENTS = [
-    { key: "allyHp", label: "Ally HP", weight: 0.35 },
+    { key: "allyHp", label: "Ally HP", weight: 0.5 },
     { key: "ccHits", label: "CC hits", weight: 0.3 },
-    { key: "timeSurvived", label: "Time survived", weight: 0.25 },
+    { key: "timeSurvived", label: "Time survived", weight: 0.1 },
     { key: "deaths", label: "Low deaths", weight: 0.1 },
   ];
 
