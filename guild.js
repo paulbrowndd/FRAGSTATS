@@ -282,3 +282,6 @@ window.GUILD_HEALER_MVP_WINNERS = {};
 
 /** First calendar month Healer MVP is tracked (YYYY-MM). Earlier months show no healer award. */
 window.GUILD_HEALER_MVP_START_MONTH = "2026-08";
+
+/** Months a member must wait after winning Healer MVP before they can win again. */
+window.GUILD_HEALER_MVP_COOLDOWN_MONTHS = 1;

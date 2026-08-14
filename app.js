@@ -803,6 +803,25 @@
     return Boolean(monthKey) && monthKey >= getHealerMvpStartMonth();
   }
 
+  function getHealerMvpCooldownMonths() {
+    const n = Number(window.GUILD_HEALER_MVP_COOLDOWN_MONTHS);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+  }
+
+  /** Prior Healer MVP winners still on cooldown this month. */
+  function getHealerMvpCooldownExclusions(data, monthKey) {
+    const excluded = new Set();
+    let cursor = monthKey;
+    for (let i = 0; i < getHealerMvpCooldownMonths(); i++) {
+      cursor = previousMonthKey(cursor);
+      if (!isHealerMvpMonth(cursor)) continue;
+      const winner = getMonthHealerMvpWinner(data, cursor);
+      if (!winner) continue;
+      excluded.add(String(canonicalFamilyName(winner)).toLowerCase());
+    }
+    return excluded;
+  }
+
   function getMvpCooldownMonths() {
     const n = Number(window.GUILD_MVP_COOLDOWN_MONTHS);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 3;
@@ -1310,7 +1329,7 @@
 
     if (healerMvpSub) {
       healerMvpSub.textContent = isHealerMvpMonth(monthKey)
-        ? "Ally heals, CCs, survival, and low deaths. Best in guild per category earns full credit."
+        ? "Ally heals, CCs, survival, and low deaths. Best in guild per category earns full credit. Recent winners sit out for 1 month."
         : `Healer MVP tracking starts ${formatMonthLabel(getHealerMvpStartMonth())}.`;
     }
 
@@ -1330,6 +1349,8 @@
     }
 
     const healerRanked = computeHealerMvpScores(guildRows);
+    const healerCooldown = monthKey ? getHealerMvpCooldownExclusions(data, monthKey) : new Set();
+    const healerEligible = mvpEligibleEntries(healerRanked, healerCooldown);
     const healerRecorded = monthKey ? getRecordedHealerMvpWinner(monthKey) : null;
     let healerWinner = null;
     if (healerRecorded) {
@@ -1339,7 +1360,7 @@
             canonicalFamilyName(entry.familyName) === canonicalFamilyName(healerRecorded)
         ) || null;
     } else {
-      healerWinner = healerRanked[0] || null;
+      healerWinner = healerEligible[0] || null;
     }
 
     healerMvpWinner.innerHTML = healerWinner
@@ -1350,7 +1371,7 @@
     `
       : `
       <p class="mvp-winner-label">Healer MVP</p>
-      <p class="mvp-winner-score">No Healer MVP this month.</p>
+      <p class="mvp-winner-score">No eligible Healer MVP this month.</p>
     `;
 
     healerMvpBreakdown.innerHTML = HEALER_MVP_COMPONENTS.map(
@@ -1360,7 +1381,7 @@
       </div>`
     ).join("");
 
-    renderMvpLeaderboard(healerMvpLeaderboard, healerRanked, 10);
+    renderMvpLeaderboard(healerMvpLeaderboard, healerEligible, 10);
   }
 
   function aggregateByFamily(data, dateKeys) {
