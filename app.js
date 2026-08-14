@@ -63,6 +63,10 @@
   const defenseMvpWinner = document.getElementById("defense-mvp-winner");
   const defenseMvpBreakdown = document.getElementById("defense-mvp-breakdown");
   const defenseMvpLeaderboard = document.getElementById("defense-mvp-leaderboard");
+  const healerMvpSection = document.getElementById("healer-mvp-section");
+  const healerMvpWinner = document.getElementById("healer-mvp-winner");
+  const healerMvpBreakdown = document.getElementById("healer-mvp-breakdown");
+  const healerMvpLeaderboard = document.getElementById("healer-mvp-leaderboard");
   const defenseWheelCanvas = document.getElementById("defense-wheel-canvas");
   const defenseWheelSpinBtn = document.getElementById("defense-wheel-spin");
   const defenseWheelResult = document.getElementById("defense-wheel-result");
@@ -107,6 +111,13 @@
     { key: "trapsTriggered", label: "Traps triggered", weight: 0.3 },
     { key: "timeSurvived", label: "Time survived", weight: 0.3 },
     { key: "allyHp", label: "Ally HP", weight: 0.1 },
+  ];
+
+  const HEALER_MVP_COMPONENTS = [
+    { key: "allyHp", label: "Ally HP", weight: 0.35 },
+    { key: "ccHits", label: "CC hits", weight: 0.3 },
+    { key: "timeSurvived", label: "Time survived", weight: 0.25 },
+    { key: "deaths", label: "Low deaths", weight: 0.1 },
   ];
 
   let currentView = VIEW.DAILY;
@@ -844,6 +855,14 @@
     return resolveGuildName(raw) || raw;
   }
 
+  function getRecordedHealerMvpWinner(monthKey) {
+    const map = window.GUILD_HEALER_MVP_WINNERS;
+    if (!map || typeof map !== "object") return null;
+    const raw = map[monthKey];
+    if (!raw) return null;
+    return resolveGuildName(raw) || raw;
+  }
+
   function getPreviousMonthMvpWinner(data, monthKey, { defense = false } = {}) {
     const prevKey = previousMonthKey(monthKey);
     return getMonthMvpWinner(data, prevKey, { defense });
@@ -855,12 +874,14 @@
   }
 
   /** Winners from each of the prior N months who are still on cooldown this month. */
-  function getMvpCooldownExclusions(data, monthKey, { defense = false } = {}) {
+  function getMvpCooldownExclusions(data, monthKey, { defense = false, healer = false } = {}) {
     const excluded = new Set();
     let cursor = monthKey;
     for (let i = 0; i < getMvpCooldownMonths(); i++) {
       cursor = previousMonthKey(cursor);
-      const winner = getMonthMvpWinner(data, cursor, { defense });
+      const winner = healer
+        ? getMonthHealerMvpWinner(data, cursor)
+        : getMonthMvpWinner(data, cursor, { defense });
       if (!winner) continue;
       excluded.add(String(canonicalFamilyName(winner)).toLowerCase());
     }
@@ -882,6 +903,37 @@
 
     const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
     let familyName = getRecordedMvpWinner(monthKey);
+    if (!familyName) {
+      const winner = ranked[0];
+      familyName = winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
+    }
+    if (!familyName) return null;
+
+    const entry = ranked.find(
+      (e) => canonicalFamilyName(e.familyName) === canonicalFamilyName(familyName)
+    );
+    return {
+      monthKey,
+      label: formatMonthLabel(monthKey),
+      familyName,
+      score: entry?.score ?? 0,
+    };
+  }
+
+  function getMonthHealerMvpWinner(data, monthKey) {
+    const entry = getMonthHealerMvpWinnerEntry(data, monthKey);
+    return entry ? entry.familyName : null;
+  }
+
+  function getMonthHealerMvpWinnerEntry(data, monthKey) {
+    const dates = datesInMonth(data, monthKey);
+    if (!dates.length) return null;
+
+    const rows = filterGuildRows(aggregateByFamily(data, dates));
+    if (!rows.length) return null;
+
+    const ranked = computeHealerMvpScores(rows);
+    let familyName = getRecordedHealerMvpWinner(monthKey);
     if (!familyName) {
       const winner = ranked[0];
       familyName = winner ? resolveGuildName(winner.familyName) || winner.familyName : null;
@@ -1210,6 +1262,52 @@
       );
   }
 
+  function healerMvpMetricsFromRow(row) {
+    return {
+      allyHp: parseGameNumber(row.allyHp),
+      ccHits: Number(row.ccHits) || 0,
+      timeSurvived: parseTimeToSeconds(row.timeSurvived),
+      deaths: Number(row.deaths) || 0,
+    };
+  }
+
+  /** Healer MVP: weighted score vs guild-high for support categories. */
+  function computeHealerMvpScores(rows) {
+    if (!rows.length) return [];
+    const withMetrics = rows.map((row) => ({
+      familyName: row.familyName,
+      m: healerMvpMetricsFromRow(row),
+    }));
+    const max = {};
+    for (const c of HEALER_MVP_COMPONENTS) {
+      if (c.key === "deaths") {
+        max.deaths = Math.max(...withMetrics.map((x) => x.m.deaths));
+      } else {
+        max[c.key] = Math.max(...withMetrics.map((x) => x.m[c.key]));
+      }
+    }
+
+    return withMetrics
+      .map(({ familyName, m }) => {
+        const parts = {};
+        for (const c of HEALER_MVP_COMPONENTS) {
+          if (c.key === "deaths") {
+            parts.deaths =
+              c.weight * Math.max(0, max.deaths > 0 ? 1 - m.deaths / max.deaths : 1);
+          } else {
+            parts[c.key] = c.weight * Math.min(1, safeRatio(m[c.key], max[c.key]));
+          }
+        }
+        const score = Object.values(parts).reduce((sum, v) => sum + v, 0);
+        return { familyName, score, parts };
+      })
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          a.familyName.localeCompare(b.familyName, undefined, { sensitivity: "base" })
+      );
+  }
+
   function formatMvpScore(score) {
     return `${(score * 100).toFixed(1)}%`;
   }
@@ -1363,6 +1461,53 @@
       defenseMvpBreakdown.innerHTML = "";
       defenseMvpLeaderboard.innerHTML = "";
     }
+  }
+
+  function renderHealerMvpSection(rows) {
+    if (!healerMvpSection) return;
+    const data = getWarData();
+    const guildRows = filterGuildRows(rows);
+    const show = currentView === VIEW.MONTHLY && guildRows.length > 0;
+    healerMvpSection.hidden = !show;
+    if (!show) return;
+
+    const monthKeys = getPeriodDateKeys(data);
+    const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
+    const ranked = computeHealerMvpScores(guildRows);
+    const cooldown = monthKey ? getMvpCooldownExclusions(data, monthKey, { healer: true }) : new Set();
+    const eligible = mvpEligibleEntries(ranked, cooldown);
+
+    const recorded = monthKey ? getRecordedHealerMvpWinner(monthKey) : null;
+    let winner = null;
+    if (recorded) {
+      winner =
+        ranked.find(
+          (entry) =>
+            canonicalFamilyName(entry.familyName) === canonicalFamilyName(recorded)
+        ) || null;
+    } else {
+      winner = eligible[0] || null;
+    }
+
+    healerMvpWinner.innerHTML = winner
+      ? `
+      <p class="mvp-winner-label">Healer MVP</p>
+      <p class="mvp-winner-name">${formatFamilyNameCell(winner.familyName)}</p>
+      <p class="mvp-winner-score">Overall score ${escapeHtml(formatMvpScore(winner.score))}</p>
+    `
+      : `
+      <p class="mvp-winner-label">Healer MVP</p>
+      <p class="mvp-winner-score">No eligible Healer MVP this month.</p>
+    `;
+
+    healerMvpBreakdown.innerHTML = HEALER_MVP_COMPONENTS.map(
+      (c) => `<div>
+        <dt>${escapeHtml(c.label)}</dt>
+        <dd class="mvp-weight">${escapeHtml(formatMvpWeight(c.weight))}</dd>
+      </div>`
+    ).join("");
+
+    renderMvpLeaderboard(healerMvpLeaderboard, eligible, 10);
   }
 
   function truncateWheelLabel(name, maxLen = 11) {
@@ -1789,6 +1934,7 @@
     if (attendancePanel) attendancePanel.hidden = true;
     if (mvpSection) mvpSection.hidden = true;
     if (defenseMvpSection) defenseMvpSection.hidden = true;
+    if (healerMvpSection) healerMvpSection.hidden = true;
     if (warAnalysisPanel) warAnalysisPanel.hidden = true;
   }
 
@@ -2089,6 +2235,7 @@
     const guildFiltered = filterGuildRows(rows);
     renderMvpSection(guildFiltered);
     renderDefenseMvpSection(guildFiltered);
+    renderHealerMvpSection(guildFiltered);
 
     const teamFiltered = applyTeamFilter(guildFiltered);
     const q = (search.value || "").trim().toLowerCase();

@@ -763,6 +763,39 @@ td.pct {
   color: #a8d4f5;
 }
 
+.mvp-section--healer {
+  border-color: rgba(90, 180, 130, 0.35);
+  background: linear-gradient(160deg, var(--surface) 0%, #0f1412 100%);
+}
+
+.mvp-section--healer .mvp-title {
+  color: #b8f0d0;
+}
+
+.mvp-section--healer .mvp-winner {
+  background: rgba(40, 120, 80, 0.12);
+  border-color: rgba(90, 180, 130, 0.35);
+  box-shadow: inset 0 0 24px rgba(90, 180, 130, 0.08);
+}
+
+.mvp-section--healer .mvp-winner-label {
+  color: #8ed4b0;
+}
+
+.mvp-section--healer .mvp-winner-score,
+.mvp-section--healer .mvp-breakdown dd.mvp-weight {
+  color: #b8f0d0;
+}
+
+.mvp-section--healer .mvp-rank-item--first {
+  border-color: rgba(90, 180, 130, 0.45);
+  background: rgba(40, 120, 80, 0.16);
+}
+
+.mvp-section--healer .mvp-rank-item--first .mvp-rank-score {
+  color: #b8f0d0;
+}
+
 .defense-wheel {
   margin-top: 1.25rem;
   padding-top: 1.15rem;
