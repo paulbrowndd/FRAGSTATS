@@ -59,18 +59,10 @@
   const mvpWinner = document.getElementById("mvp-winner");
   const mvpBreakdown = document.getElementById("mvp-breakdown");
   const mvpLeaderboard = document.getElementById("mvp-leaderboard");
-  const defenseMvpSection = document.getElementById("defense-mvp-section");
-  const defenseMvpWinner = document.getElementById("defense-mvp-winner");
-  const defenseMvpBreakdown = document.getElementById("defense-mvp-breakdown");
-  const defenseMvpLeaderboard = document.getElementById("defense-mvp-leaderboard");
-  const healerMvpSection = document.getElementById("healer-mvp-section");
   const healerMvpWinner = document.getElementById("healer-mvp-winner");
   const healerMvpBreakdown = document.getElementById("healer-mvp-breakdown");
   const healerMvpLeaderboard = document.getElementById("healer-mvp-leaderboard");
-  const defenseWheelCanvas = document.getElementById("defense-wheel-canvas");
-  const defenseWheelSpinBtn = document.getElementById("defense-wheel-spin");
-  const defenseWheelResult = document.getElementById("defense-wheel-result");
-  const defenseWheelTally = document.getElementById("defense-wheel-tally");
+  const healerMvpSub = document.getElementById("healer-mvp-sub");
   const attendancePanel = document.getElementById("attendance-panel");
   const teamFiltersEl = document.getElementById("team-filters");
   const warAnalysisPanel = document.getElementById("war-analysis-panel");
@@ -105,13 +97,6 @@
     damageTaken: { key: "damageTaken", type: "str" },
     deaths: { key: "deaths", type: "num" },
   };
-
-  const DEFENSE_MVP_COMPONENTS = [
-    { key: "ccHits", label: "CC hits", weight: 0.3 },
-    { key: "trapsTriggered", label: "Traps triggered", weight: 0.3 },
-    { key: "timeSurvived", label: "Time survived", weight: 0.3 },
-    { key: "allyHp", label: "Ally HP", weight: 0.1 },
-  ];
 
   const HEALER_MVP_COMPONENTS = [
     { key: "allyHp", label: "Ally HP", weight: 0.35 },
@@ -149,15 +134,6 @@
   ];
 
   let rosterIndex = null;
-  let defenseWheelRotation = 0;
-  let defenseWheelSpinning = false;
-  let defenseWheelAnimId = null;
-  let defenseWheelEntries = [];
-  let defenseWheelMonthKey = "";
-  let defenseWheelNameColors = new Map();
-
-  const DEFENSE_WHEEL_COLORS = ["#2a5080", "#3a6898", "#1e4068", "#4a78a8", "#234868", "#5278a0"];
-  const DEFENSE_SIEGE_ENTRY_WEIGHT = 2;
 
   function buildAnalysisCols() {
     const analysisOrder = [
@@ -440,51 +416,6 @@
 
   function filterGuildRows(rows) {
     return rows.filter((r) => isGuildMember(r.familyName));
-  }
-
-  function filterDefenseRows(rows) {
-    return filterGuildRows(rows).filter((r) => memberHasTeam(resolveGuildName(r.familyName), "Defense"));
-  }
-
-  function getDefenseRoster() {
-    return getGuildRoster()
-      .filter((name) => memberHasTeam(name, "Defense"))
-      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-  }
-
-  /** Defense members present on a single war date. */
-  function defensePresentOnDate(data, dateKey) {
-    const day = data[dateKey];
-    if (!day || !Array.isArray(day.rows)) return [];
-    const present = new Set();
-    for (const r of day.rows) {
-      const canon = resolveGuildName(r.familyName);
-      if (canon && memberHasTeam(canon, "Defense")) present.add(canon);
-    }
-    return Array.from(present).sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
-  }
-
-  /**
-   * Wheel entries by war day attended (chronological).
-   * Node wars = 1 entry; siege (Saturday) = 2 entries.
-   * Returns { entries, counts, warsLogged }.
-   */
-  function buildDefenseWheelEntries(data, dateKeys) {
-    const entries = [];
-    const counts = new Map();
-    const keys = [...dateKeys].sort();
-
-    for (const dk of keys) {
-      const weight = isSiegeDate(dk) ? DEFENSE_SIEGE_ENTRY_WEIGHT : 1;
-      for (const name of defensePresentOnDate(data, dk)) {
-        for (let i = 0; i < weight; i += 1) entries.push(name);
-        counts.set(name, (counts.get(name) || 0) + weight);
-      }
-    }
-
-    return { entries, counts, warsLogged: keys.length };
   }
 
   function getPeriodDateKeys(data) {
@@ -863,9 +794,13 @@
     return resolveGuildName(raw) || raw;
   }
 
-  function getPreviousMonthMvpWinner(data, monthKey, { defense = false } = {}) {
-    const prevKey = previousMonthKey(monthKey);
-    return getMonthMvpWinner(data, prevKey, { defense });
+  function getHealerMvpStartMonth() {
+    const raw = window.GUILD_HEALER_MVP_START_MONTH;
+    return typeof raw === "string" && /^\d{4}-\d{2}$/.test(raw) ? raw : "2026-08";
+  }
+
+  function isHealerMvpMonth(monthKey) {
+    return Boolean(monthKey) && monthKey >= getHealerMvpStartMonth();
   }
 
   function getMvpCooldownMonths() {
@@ -874,34 +809,31 @@
   }
 
   /** Winners from each of the prior N months who are still on cooldown this month. */
-  function getMvpCooldownExclusions(data, monthKey, { defense = false, healer = false } = {}) {
+  function getMvpCooldownExclusions(data, monthKey) {
     const excluded = new Set();
     let cursor = monthKey;
     for (let i = 0; i < getMvpCooldownMonths(); i++) {
       cursor = previousMonthKey(cursor);
-      const winner = healer
-        ? getMonthHealerMvpWinner(data, cursor)
-        : getMonthMvpWinner(data, cursor, { defense });
+      const winner = getMonthMvpWinner(data, cursor);
       if (!winner) continue;
       excluded.add(String(canonicalFamilyName(winner)).toLowerCase());
     }
     return excluded;
   }
 
-  function getMonthMvpWinner(data, monthKey, { defense = false } = {}) {
-    const entry = getMonthMvpWinnerEntry(data, monthKey, { defense });
+  function getMonthMvpWinner(data, monthKey) {
+    const entry = getMonthMvpWinnerEntry(data, monthKey);
     return entry ? entry.familyName : null;
   }
 
-  function getMonthMvpWinnerEntry(data, monthKey, { defense = false } = {}) {
+  function getMonthMvpWinnerEntry(data, monthKey) {
     const dates = datesInMonth(data, monthKey);
     if (!dates.length) return null;
 
-    const rows = aggregateByFamily(data, dates);
-    const scopedRows = defense ? filterDefenseRows(rows) : filterGuildRows(rows);
-    if (!scopedRows.length) return null;
+    const rows = filterGuildRows(aggregateByFamily(data, dates));
+    if (!rows.length) return null;
 
-    const ranked = defense ? computeDefenseMvpScores(scopedRows) : computeMvpScores(scopedRows);
+    const ranked = computeMvpScores(rows);
     let familyName = getRecordedMvpWinner(monthKey);
     if (!familyName) {
       const winner = ranked[0];
@@ -926,6 +858,8 @@
   }
 
   function getMonthHealerMvpWinnerEntry(data, monthKey) {
+    if (!isHealerMvpMonth(monthKey)) return null;
+
     const dates = datesInMonth(data, monthKey);
     if (!dates.length) return null;
 
@@ -1221,47 +1155,6 @@
       );
   }
 
-  function defenseMvpMetricsFromRow(row) {
-    return {
-      ccHits: Number(row.ccHits) || 0,
-      trapsTriggered: Number(row.trapsTriggered) || 0,
-      timeSurvived: parseTimeToSeconds(row.timeSurvived),
-      allyHp: parseGameNumber(row.allyHp),
-    };
-  }
-
-  /** Defense MVP: weighted score vs Defense-high for each category. */
-  function computeDefenseMvpScores(rows) {
-    if (!rows.length) return [];
-    const withMetrics = rows.map((row) => ({
-      familyName: row.familyName,
-      m: defenseMvpMetricsFromRow(row),
-    }));
-    const max = {
-      ccHits: Math.max(...withMetrics.map((x) => x.m.ccHits)),
-      trapsTriggered: Math.max(...withMetrics.map((x) => x.m.trapsTriggered)),
-      timeSurvived: Math.max(...withMetrics.map((x) => x.m.timeSurvived)),
-      allyHp: Math.max(...withMetrics.map((x) => x.m.allyHp)),
-    };
-
-    return withMetrics
-      .map(({ familyName, m }) => {
-        const parts = {
-          ccHits: 0.3 * safeRatio(m.ccHits, max.ccHits),
-          trapsTriggered: 0.3 * safeRatio(m.trapsTriggered, max.trapsTriggered),
-          timeSurvived: 0.3 * safeRatio(m.timeSurvived, max.timeSurvived),
-          allyHp: 0.1 * safeRatio(m.allyHp, max.allyHp),
-        };
-        const score = Object.values(parts).reduce((sum, v) => sum + v, 0);
-        return { familyName, score, parts };
-      })
-      .sort(
-        (a, b) =>
-          b.score - a.score ||
-          a.familyName.localeCompare(b.familyName, undefined, { sensitivity: "base" })
-      );
-  }
-
   function healerMvpMetricsFromRow(row) {
     return {
       allyHp: parseGameNumber(row.allyHp),
@@ -1378,6 +1271,7 @@
 
     const monthKeys = getPeriodDateKeys(data);
     const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
+
     const ranked = computeMvpScores(guildRows);
     const cooldown = monthKey ? getMvpCooldownExclusions(data, monthKey) : new Set();
     const eligible = mvpEligibleEntries(ranked, cooldown);
@@ -1413,91 +1307,50 @@
     ).join("");
 
     renderMvpLeaderboard(mvpLeaderboard, eligible, 10);
-  }
 
-  function renderDefenseMvpSection(rows) {
-    if (!defenseMvpSection) return;
-    const data = getWarData();
-    const monthKeys = currentView === VIEW.MONTHLY ? getPeriodDateKeys(data) : [];
-    const show = currentView === VIEW.MONTHLY && monthKeys.length > 0;
-    defenseMvpSection.hidden = !show;
-    if (!show) return;
+    if (healerMvpSub) {
+      healerMvpSub.textContent = isHealerMvpMonth(monthKey)
+        ? "Ally heals, CCs, survival, and low deaths. Best in guild per category earns full credit."
+        : `Healer MVP tracking starts ${formatMonthLabel(getHealerMvpStartMonth())}.`;
+    }
 
-    const defenseRows = filterDefenseRows(rows);
-
-    if (defenseRows.length > 0) {
-      const ranked = computeDefenseMvpScores(defenseRows);
-      const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
-      const cooldown = monthKey
-        ? getMvpCooldownExclusions(data, monthKey, { defense: true })
-        : new Set();
-      const eligible = mvpEligibleEntries(ranked, cooldown);
-      const winner = eligible[0];
-
-      defenseMvpWinner.innerHTML = winner
-        ? `
-        <p class="mvp-winner-label">Defense MVP</p>
-        <p class="mvp-winner-name">${formatFamilyNameCell(winner.familyName)}</p>
-        <p class="mvp-winner-score">Overall score ${escapeHtml(formatMvpScore(winner.score))}</p>
-      `
-        : `
-        <p class="mvp-winner-label">Defense MVP</p>
-        <p class="mvp-winner-score">No eligible Defense MVP this month.</p>
+    if (!isHealerMvpMonth(monthKey)) {
+      healerMvpWinner.innerHTML = `
+        <p class="mvp-winner-label">Healer MVP</p>
+        <p class="mvp-winner-score">Starts ${escapeHtml(formatMonthLabel(getHealerMvpStartMonth()))}</p>
       `;
-
-      defenseMvpBreakdown.innerHTML = DEFENSE_MVP_COMPONENTS.map(
+      healerMvpBreakdown.innerHTML = HEALER_MVP_COMPONENTS.map(
         (c) => `<div>
           <dt>${escapeHtml(c.label)}</dt>
           <dd class="mvp-weight">${escapeHtml(formatMvpWeight(c.weight))}</dd>
         </div>`
       ).join("");
-
-      renderMvpLeaderboard(defenseMvpLeaderboard, eligible, 10);
-    } else {
-      defenseMvpWinner.innerHTML = `
-        <p class="mvp-winner-label">Defense MVP</p>
-        <p class="mvp-winner-score">No Defense stats this month.</p>
-      `;
-      defenseMvpBreakdown.innerHTML = "";
-      defenseMvpLeaderboard.innerHTML = "";
+      healerMvpLeaderboard.innerHTML = "";
+      return;
     }
-  }
 
-  function renderHealerMvpSection(rows) {
-    if (!healerMvpSection) return;
-    const data = getWarData();
-    const guildRows = filterGuildRows(rows);
-    const show = currentView === VIEW.MONTHLY && guildRows.length > 0;
-    healerMvpSection.hidden = !show;
-    if (!show) return;
-
-    const monthKeys = getPeriodDateKeys(data);
-    const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : null;
-    const ranked = computeHealerMvpScores(guildRows);
-    const cooldown = monthKey ? getMvpCooldownExclusions(data, monthKey, { healer: true }) : new Set();
-    const eligible = mvpEligibleEntries(ranked, cooldown);
-
-    const recorded = monthKey ? getRecordedHealerMvpWinner(monthKey) : null;
-    let winner = null;
-    if (recorded) {
-      winner =
-        ranked.find(
+    const healerRanked = computeHealerMvpScores(guildRows);
+    const healerRecorded = monthKey ? getRecordedHealerMvpWinner(monthKey) : null;
+    let healerWinner = null;
+    if (healerRecorded) {
+      healerWinner =
+        healerRanked.find(
           (entry) =>
-            canonicalFamilyName(entry.familyName) === canonicalFamilyName(recorded)
+            canonicalFamilyName(entry.familyName) === canonicalFamilyName(healerRecorded)
         ) || null;
     } else {
-      winner = eligible[0] || null;
+      healerWinner = healerRanked[0] || null;
     }
 
-    healerMvpWinner.innerHTML = winner
+    healerMvpWinner.innerHTML = healerWinner
       ? `
       <p class="mvp-winner-label">Healer MVP</p>
-      <p class="mvp-winner-name">${formatFamilyNameCell(winner.familyName)}</p>
-      <p class="mvp-winner-score">Overall score ${escapeHtml(formatMvpScore(winner.score))}</p>
+      <p class="mvp-winner-name">${formatFamilyNameCell(healerWinner.familyName)}</p>
+      <p class="mvp-winner-score">Overall score ${escapeHtml(formatMvpScore(healerWinner.score))}</p>
     `
       : `
       <p class="mvp-winner-label">Healer MVP</p>
-      <p class="mvp-winner-score">No eligible Healer MVP this month.</p>
+      <p class="mvp-winner-score">No Healer MVP this month.</p>
     `;
 
     healerMvpBreakdown.innerHTML = HEALER_MVP_COMPONENTS.map(
@@ -1507,210 +1360,7 @@
       </div>`
     ).join("");
 
-    renderMvpLeaderboard(healerMvpLeaderboard, eligible, 10);
-  }
-
-  function truncateWheelLabel(name, maxLen = 11) {
-    const text = String(name || "");
-    return text.length <= maxLen ? text : `${text.slice(0, maxLen - 1)}…`;
-  }
-
-  function buildDefenseWheelNameColors(entries) {
-    const colors = new Map();
-    let idx = 0;
-    for (const name of entries) {
-      if (!colors.has(name)) {
-        colors.set(name, DEFENSE_WHEEL_COLORS[idx % DEFENSE_WHEEL_COLORS.length]);
-        idx += 1;
-      }
-    }
-    return colors;
-  }
-
-  function renderDefenseWheelTally(entries, counts, warsLogged) {
-    if (!defenseWheelTally) return;
-
-    if (!entries.length) {
-      defenseWheelTally.textContent = "No Defense attendance logged this month yet.";
-      return;
-    }
-
-    const unique = counts.size;
-    const summary = Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], undefined, { sensitivity: "base" }))
-      .map(([name, count]) => `${name} ×${count}`)
-      .join(", ");
-
-    defenseWheelTally.textContent = `${entries.length} ${entries.length === 1 ? "entry" : "entries"} across ${warsLogged} logged ${warsLogged === 1 ? "war" : "wars"} · ${unique} ${unique === 1 ? "player" : "players"} · ${summary}`;
-  }
-
-  function drawDefenseWheel(entries = defenseWheelEntries) {
-    if (!defenseWheelCanvas) return;
-    const ctx = defenseWheelCanvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const size = 320;
-    defenseWheelCanvas.width = size * dpr;
-    defenseWheelCanvas.height = size * dpr;
-    defenseWheelCanvas.style.width = `${size}px`;
-    defenseWheelCanvas.style.height = `${size}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size, size);
-
-    const cx = size / 2;
-    const cy = size / 2;
-    const radius = size / 2 - 8;
-
-    if (!entries.length) {
-      ctx.fillStyle = "#9a8f8c";
-      ctx.font = "600 14px Segoe UI, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("No entries yet", cx, cy - 8);
-      ctx.font = "500 12px Segoe UI, system-ui, sans-serif";
-      ctx.fillText("Attend node wars to add names", cx, cy + 12);
-      return;
-    }
-
-    const slice = (Math.PI * 2) / entries.length;
-    const minLabelSlice = (12 * Math.PI) / 180;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate((defenseWheelRotation * Math.PI) / 180);
-
-    entries.forEach((name, i) => {
-      const start = i * slice - Math.PI / 2;
-      const end = start + slice;
-
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, radius, start, end);
-      ctx.closePath();
-      ctx.fillStyle = defenseWheelNameColors.get(name) || DEFENSE_WHEEL_COLORS[0];
-      ctx.fill();
-      ctx.strokeStyle = "rgba(168, 212, 245, 0.35)";
-      ctx.lineWidth = entries.length > 40 ? 0.75 : 1.5;
-      ctx.stroke();
-
-      if (slice >= minLabelSlice) {
-        ctx.save();
-        ctx.rotate(start + slice / 2);
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#f2ece8";
-        const fontSize = entries.length > 24 ? 8 : entries.length > 14 ? 9 : 11;
-        ctx.font = `700 ${fontSize}px Segoe UI, system-ui, sans-serif`;
-        ctx.fillText(truncateWheelLabel(name, entries.length > 20 ? 8 : 11), radius - 10, 0);
-        ctx.restore();
-      }
-    });
-
-    ctx.restore();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-    ctx.fillStyle = "#0f1218";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(168, 212, 245, 0.55)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = "#a8d4f5";
-    ctx.font = "700 11px Segoe UI, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(String(entries.length), cx, cy);
-  }
-
-  function updateDefenseWheel() {
-    if (!defenseWheelCanvas || !defenseWheelSpinBtn || currentView !== VIEW.MONTHLY) return;
-
-    const data = getWarData();
-    const monthKeys = getPeriodDateKeys(data);
-    const monthKey = monthKeys[0] ? monthKeyUTC(monthKeys[0]) : currentMonth || "";
-
-    if (monthKey && monthKey !== defenseWheelMonthKey && !defenseWheelSpinning) {
-      defenseWheelMonthKey = monthKey;
-      defenseWheelRotation = 0;
-      if (defenseWheelResult) {
-        defenseWheelResult.hidden = true;
-        defenseWheelResult.textContent = "";
-      }
-    }
-
-    const { entries, counts, warsLogged } = buildDefenseWheelEntries(data, monthKeys);
-    defenseWheelEntries = entries;
-    defenseWheelNameColors = buildDefenseWheelNameColors(entries);
-
-    drawDefenseWheel(entries);
-    renderDefenseWheelTally(entries, counts, warsLogged);
-
-    defenseWheelSpinBtn.disabled = defenseWheelSpinning || entries.length === 0;
-    if (entries.length === 0 && defenseWheelResult && !defenseWheelSpinning) {
-      defenseWheelResult.hidden = false;
-      defenseWheelResult.textContent = "Log Defense attendance this month to enable the spin.";
-    }
-  }
-
-  function spinDefenseWheel() {
-    const entries = defenseWheelEntries;
-    if (defenseWheelSpinning || entries.length === 0 || !defenseWheelSpinBtn) return;
-
-    if (defenseWheelAnimId) cancelAnimationFrame(defenseWheelAnimId);
-
-    defenseWheelSpinning = true;
-    defenseWheelSpinBtn.disabled = true;
-    if (defenseWheelResult) defenseWheelResult.hidden = true;
-
-    const slice = 360 / entries.length;
-    const winIndex = Math.floor(Math.random() * entries.length);
-    const winner = entries[winIndex];
-    const winnerCount = entries.filter((n) => n === winner).length;
-    const extraSpins = 5 + Math.floor(Math.random() * 4);
-    const targetMod = ((360 - (winIndex + 0.5) * slice) % 360 + 360) % 360;
-    const currentMod = ((defenseWheelRotation % 360) + 360) % 360;
-    let delta = targetMod - currentMod;
-    if (delta <= 0) delta += 360;
-    const finalRotation = defenseWheelRotation + extraSpins * 360 + delta;
-    const startRotation = defenseWheelRotation;
-    const duration = 4500;
-    const startTime = performance.now();
-
-    function easeOutCubic(t) {
-      return 1 - Math.pow(1 - t, 3);
-    }
-
-    function frame(now) {
-      const t = Math.min(1, (now - startTime) / duration);
-      defenseWheelRotation = startRotation + (finalRotation - startRotation) * easeOutCubic(t);
-      drawDefenseWheel(entries);
-
-      if (t < 1) {
-        defenseWheelAnimId = requestAnimationFrame(frame);
-        return;
-      }
-
-      defenseWheelRotation = finalRotation;
-      defenseWheelSpinning = false;
-      defenseWheelAnimId = null;
-      defenseWheelSpinBtn.disabled = false;
-      drawDefenseWheel(entries);
-
-      if (defenseWheelResult) {
-        defenseWheelResult.hidden = false;
-        defenseWheelResult.innerHTML = `Gift card winner: <strong>${escapeHtml(winner)}</strong> · ${winnerCount} ${winnerCount === 1 ? "entry" : "entries"} this month`;
-      }
-    }
-
-    defenseWheelAnimId = requestAnimationFrame(frame);
-  }
-
-  function initDefenseWheel() {
-    if (!defenseWheelSpinBtn) return;
-    defenseWheelSpinBtn.addEventListener("click", spinDefenseWheel);
-    updateDefenseWheel();
+    renderMvpLeaderboard(healerMvpLeaderboard, healerRanked, 10);
   }
 
   function aggregateByFamily(data, dateKeys) {
@@ -1933,8 +1583,6 @@
   function hideStatsPanels() {
     if (attendancePanel) attendancePanel.hidden = true;
     if (mvpSection) mvpSection.hidden = true;
-    if (defenseMvpSection) defenseMvpSection.hidden = true;
-    if (healerMvpSection) healerMvpSection.hidden = true;
     if (warAnalysisPanel) warAnalysisPanel.hidden = true;
   }
 
@@ -2234,8 +1882,6 @@
 
     const guildFiltered = filterGuildRows(rows);
     renderMvpSection(guildFiltered);
-    renderDefenseMvpSection(guildFiltered);
-    renderHealerMvpSection(guildFiltered);
 
     const teamFiltered = applyTeamFilter(guildFiltered);
     const q = (search.value || "").trim().toLowerCase();

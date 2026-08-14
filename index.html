@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260814" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -79,40 +79,32 @@
 
       <div id="attendance-panel" class="attendance-panel panel" hidden></div>
 
-      <section id="mvp-section" class="mvp-section panel" hidden aria-labelledby="mvp-heading">
-        <div class="mvp-head">
-          <h2 id="mvp-heading" class="mvp-title">Monthly MVP</h2>
-          <p class="mvp-sub">
-            Weighted score from monthly totals. Best in guild per category earns full credit. Recent winners sit out for 3 months.
-          </p>
-        </div>
-        <div class="mvp-winner" id="mvp-winner"></div>
-        <dl id="mvp-breakdown" class="mvp-breakdown"></dl>
-        <ol id="mvp-leaderboard" class="mvp-leaderboard" aria-label="MVP score rankings"></ol>
-      </section>
+      <section id="mvp-section" class="mvp-section panel" hidden aria-label="Monthly MVP awards">
+        <div class="mvp-dual">
+          <article class="mvp-pane mvp-pane--combat" aria-labelledby="mvp-heading">
+            <div class="mvp-head">
+              <h2 id="mvp-heading" class="mvp-title">Monthly MVP</h2>
+              <p class="mvp-sub">
+                Weighted score from monthly totals. Best in guild per category earns full credit. Recent winners sit out for 3 months.
+              </p>
+            </div>
+            <div class="mvp-winner" id="mvp-winner"></div>
+            <dl id="mvp-breakdown" class="mvp-breakdown"></dl>
+            <ol id="mvp-leaderboard" class="mvp-leaderboard" aria-label="MVP score rankings"></ol>
+          </article>
 
-      <section id="defense-mvp-section" class="mvp-section mvp-section--defense panel" hidden aria-labelledby="defense-mvp-heading">
-        <div class="mvp-head">
-          <h2 id="defense-mvp-heading" class="mvp-title">Defense MVP</h2>
-          <p class="mvp-sub">
-            Defense team only. Weighted score from monthly totals. Best among Defense per category earns full credit.
-          </p>
+          <article class="mvp-pane mvp-pane--healer" aria-labelledby="healer-mvp-heading">
+            <div class="mvp-head">
+              <h2 id="healer-mvp-heading" class="mvp-title">Healer MVP</h2>
+              <p class="mvp-sub" id="healer-mvp-sub">
+                Ally heals, CCs, survival, and low deaths. Best in guild per category earns full credit.
+              </p>
+            </div>
+            <div class="mvp-winner" id="healer-mvp-winner"></div>
+            <dl id="healer-mvp-breakdown" class="mvp-breakdown"></dl>
+            <ol id="healer-mvp-leaderboard" class="mvp-leaderboard" aria-label="Healer MVP score rankings"></ol>
+          </article>
         </div>
-        <div class="mvp-winner" id="defense-mvp-winner"></div>
-        <dl id="defense-mvp-breakdown" class="mvp-breakdown"></dl>
-        <ol id="defense-mvp-leaderboard" class="mvp-leaderboard" aria-label="Defense MVP score rankings"></ol>
-      </section>
-
-      <section id="healer-mvp-section" class="mvp-section mvp-section--healer panel" hidden aria-labelledby="healer-mvp-heading">
-        <div class="mvp-head">
-          <h2 id="healer-mvp-heading" class="mvp-title">Healer MVP</h2>
-          <p class="mvp-sub">
-            Monthly support score from ally heals, CCs, survival, and low deaths. Best in guild per category earns full credit. Recent winners sit out for 3 months.
-          </p>
-        </div>
-        <div class="mvp-winner" id="healer-mvp-winner"></div>
-        <dl id="healer-mvp-breakdown" class="mvp-breakdown"></dl>
-        <ol id="healer-mvp-leaderboard" class="mvp-leaderboard" aria-label="Healer MVP score rankings"></ol>
       </section>
 
       <section id="war-analysis-panel" class="war-analysis-section panel" hidden aria-labelledby="war-analysis-heading">
@@ -138,8 +130,8 @@
       </div>
     </div>
 
-    <script src="guild.js?v=20260811"></script>
+    <script src="guild.js?v=20260814"></script>
     <script src="data.js"></script>
-    <script src="app.js?v=20260814"></script>
+    <script src="app.js?v=20260814b"></script>
   </body>
 </html>

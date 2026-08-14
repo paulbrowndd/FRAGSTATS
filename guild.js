@@ -93,7 +93,6 @@ window.GUILD_ROSTER = [
   "XChronik",
   "XOdaaX",
   "XSliceX",
-  "XxCASHxX",
   "Yuki_Chan",
   "Zoyac",
 ];
@@ -190,7 +189,6 @@ window.GUILD_MEMBER_TEAMS = {
   XChronik: "Defense",
   XOdaaX: "Ball",
   XSliceX: "Ball",
-  XxCASHxX: "Ball",
   Yuki_Chan: "Flex",
   Zoyac: "Support",
 };
@@ -281,3 +279,6 @@ window.GUILD_MVP_COOLDOWN_MONTHS = 3;
 
 /** Recorded monthly Healer MVP winners (YYYY-MM). Separate track from combat MVP. */
 window.GUILD_HEALER_MVP_WINNERS = {};
+
+/** First calendar month Healer MVP is tracked (YYYY-MM). Earlier months show no healer award. */
+window.GUILD_HEALER_MVP_START_MONTH = "2026-08";
