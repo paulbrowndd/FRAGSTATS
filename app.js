@@ -98,10 +98,8 @@
   };
 
   const HEALER_MVP_COMPONENTS = [
-    { key: "allyHp", label: "Ally HP", weight: 0.7 },
-    { key: "ccHits", label: "CC hits", weight: 0.18 },
-    { key: "timeSurvived", label: "Time survived", weight: 0.06 },
-    { key: "deaths", label: "Low deaths", weight: 0.06 },
+    { key: "allyHp", label: "Ally HP", weight: 0.75 },
+    { key: "ccHits", label: "CC hits", weight: 0.25 },
   ];
 
   let currentView = VIEW.DAILY;
@@ -1177,8 +1175,6 @@
     return {
       allyHp: parseGameNumber(row.allyHp),
       ccHits: Number(row.ccHits) || 0,
-      timeSurvived: parseTimeToSeconds(row.timeSurvived),
-      deaths: Number(row.deaths) || 0,
     };
   }
 
@@ -1191,23 +1187,14 @@
     }));
     const max = {};
     for (const c of HEALER_MVP_COMPONENTS) {
-      if (c.key === "deaths") {
-        max.deaths = Math.max(...withMetrics.map((x) => x.m.deaths));
-      } else {
-        max[c.key] = Math.max(...withMetrics.map((x) => x.m[c.key]));
-      }
+      max[c.key] = Math.max(...withMetrics.map((x) => x.m[c.key]));
     }
 
     return withMetrics
       .map(({ familyName, m }) => {
         const parts = {};
         for (const c of HEALER_MVP_COMPONENTS) {
-          if (c.key === "deaths") {
-            parts.deaths =
-              c.weight * Math.max(0, max.deaths > 0 ? 1 - m.deaths / max.deaths : 1);
-          } else {
-            parts[c.key] = c.weight * Math.min(1, safeRatio(m[c.key], max[c.key]));
-          }
+          parts[c.key] = c.weight * Math.min(1, safeRatio(m[c.key], max[c.key]));
         }
         const score = Object.values(parts).reduce((sum, v) => sum + v, 0);
         return { familyName, score, parts };
