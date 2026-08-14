@@ -62,7 +62,6 @@
   const healerMvpWinner = document.getElementById("healer-mvp-winner");
   const healerMvpBreakdown = document.getElementById("healer-mvp-breakdown");
   const healerMvpLeaderboard = document.getElementById("healer-mvp-leaderboard");
-  const healerMvpSub = document.getElementById("healer-mvp-sub");
   const attendancePanel = document.getElementById("attendance-panel");
   const teamFiltersEl = document.getElementById("team-filters");
   const warAnalysisPanel = document.getElementById("war-analysis-panel");
@@ -1326,12 +1325,6 @@
     ).join("");
 
     renderMvpLeaderboard(mvpLeaderboard, eligible, 10);
-
-    if (healerMvpSub) {
-      healerMvpSub.textContent = isHealerMvpMonth(monthKey)
-        ? "Ally heals, CCs, survival, and low deaths. Best in guild per category earns full credit. Recent winners sit out for 1 month."
-        : `Healer MVP tracking starts ${formatMonthLabel(getHealerMvpStartMonth())}.`;
-    }
 
     if (!isHealerMvpMonth(monthKey)) {
       healerMvpWinner.innerHTML = `
