@@ -764,6 +764,11 @@ td.pct {
   color: #b8f0d0;
 }
 
+.mvp-pane--healer .mvp-breakdown {
+  grid-template-columns: repeat(2, minmax(130px, auto));
+  justify-content: center;
+}
+
 .mvp-pane--healer .mvp-rank-item--first {
   border-color: rgba(90, 180, 130, 0.45);
   background: rgba(40, 120, 80, 0.16);
