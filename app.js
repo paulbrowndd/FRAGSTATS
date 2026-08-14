@@ -99,10 +99,10 @@
   };
 
   const HEALER_MVP_COMPONENTS = [
-    { key: "allyHp", label: "Ally HP", weight: 0.5 },
-    { key: "ccHits", label: "CC hits", weight: 0.3 },
-    { key: "timeSurvived", label: "Time survived", weight: 0.1 },
-    { key: "deaths", label: "Low deaths", weight: 0.1 },
+    { key: "allyHp", label: "Ally HP", weight: 0.7 },
+    { key: "ccHits", label: "CC hits", weight: 0.18 },
+    { key: "timeSurvived", label: "Time survived", weight: 0.06 },
+    { key: "deaths", label: "Low deaths", weight: 0.06 },
   ];
 
   let currentView = VIEW.DAILY;
