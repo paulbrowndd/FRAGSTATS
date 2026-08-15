@@ -3,4 +3,16 @@
  * Add or edit dates when fort winners are reported:
  *   "YYYY-MM-DD": ["GuildName", ...]
  */
-window.SIEGE_FORT_WINS = {};
+window.SIEGE_FORT_WINS = {
+  "2026-08-15": [
+    "Arsha",
+    "Omen",
+    "Prime",
+    "FRAG",
+    "Envy",
+    "Kama",
+    "Elite",
+    "Conflict Desac",
+    "Mayhem",
+  ],
+};
