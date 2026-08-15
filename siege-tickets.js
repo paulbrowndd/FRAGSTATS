@@ -12,7 +12,8 @@ window.SIEGE_FORT_WINS = {
     "Envy",
     "Kama",
     "Elite",
-    "Conflict Desac",
+    "Conflict",
+    "Desac",
     "Mayhem",
   ],
 };
