@@ -704,6 +704,75 @@
       : {};
   }
 
+  function getSiegeOurAllianceGuilds() {
+    const list = window.SIEGE_OUR_ALLIANCE;
+    return Array.isArray(list)
+      ? list.map(normalizeSiegeGuildName).filter(Boolean)
+      : [];
+  }
+
+  function getSiegeEliteAllianceLabel() {
+    const label = window.SIEGE_ELITE_ALLIANCE_LABEL;
+    return typeof label === "string" && label.trim() ? label.trim() : "Elite Alliance";
+  }
+
+  function isSiegeOurAllianceGuild(name) {
+    const key = normalizeSiegeGuildName(name).toLowerCase();
+    return getSiegeOurAllianceGuilds().some((g) => g.toLowerCase() === key);
+  }
+
+  function splitTicketsByAlliance(tickets) {
+    const ours = [];
+    const elite = [];
+    for (const t of tickets) {
+      if (isSiegeOurAllianceGuild(t.name)) ours.push(t);
+      else elite.push(t);
+    }
+    return { ours, elite };
+  }
+
+  function renderSiegeTicketItem(t) {
+    const fragMark = t.name.toUpperCase() === "FRAG" ? " siege-ticket--frag" : "";
+    return `<li class="siege-ticket${fragMark}">
+      <span class="siege-ticket-guild">${escapeHtml(t.name)}</span>
+      <span class="siege-ticket-meta">earned ${escapeHtml(formatShortDate(t.firstDate))}</span>
+    </li>`;
+  }
+
+  function renderAllianceTicketBlock(label, tickets, modifierClass) {
+    const count = tickets.length;
+    const listHtml = count
+      ? `<ul class="siege-ticket-list">${tickets.map(renderSiegeTicketItem).join("")}</ul>`
+      : `<p class="siege-empty siege-empty--sub">None this week</p>`;
+    return `<section class="siege-alliance ${modifierClass}" aria-label="${escapeHtml(label)}">
+      <h4 class="siege-alliance-title">${escapeHtml(label)} <span class="siege-alliance-count">${count}</span></h4>
+      ${listHtml}
+    </section>`;
+  }
+
+  function renderSiegeWinnerTag(g, day) {
+    const isNew = day.newTickets.some((n) => n.toLowerCase() === g.toLowerCase());
+    const isRepeat = day.alreadyHadTicket.some((n) => n.toLowerCase() === g.toLowerCase());
+    let cls = "siege-winner";
+    if (isNew) cls += " siege-winner--new";
+    else if (isRepeat) cls += " siege-winner--repeat";
+    const note = isNew
+      ? ' <em class="siege-winner-note">+ticket</em>'
+      : isRepeat
+        ? ' <em class="siege-winner-note">already had ticket</em>'
+        : "";
+    const allianceMark = isSiegeOurAllianceGuild(g) ? " siege-winner--ours" : " siege-winner--elite";
+    return `<span class="${cls}${allianceMark}">${escapeHtml(g)}${note}</span>`;
+  }
+
+  function renderSiegeDayAllianceGroup(label, winners, day) {
+    if (!winners.length) return "";
+    return `<div class="siege-day-group">
+      <span class="siege-day-group-label">${escapeHtml(label)}</span>
+      <div class="siege-day-winners">${winners.map((g) => renderSiegeWinnerTag(g, day)).join("")}</div>
+    </div>`;
+  }
+
   function normalizeSiegeGuildName(name) {
     return String(name || "").trim();
   }
@@ -1700,44 +1769,29 @@
     if (weekSelect.value !== sun) weekSelect.value = sun;
 
     const { tickets, dailyLog, ticketCount } = computeWeekSiegeTickets(sun);
+    const { ours, elite } = splitTicketsByAlliance(tickets);
+    const ourLabel = "Our Alliance";
+    const eliteLabel = getSiegeEliteAllianceLabel();
     const weekLabel = formatWeekRangeLabel(sun);
     metaEl.textContent = `Weekly siege tickets · Sun–Sat ${weekLabel}`;
 
-    const ticketListHtml = tickets.length
-      ? `<ul class="siege-ticket-list">${tickets
-          .map((t) => {
-            const fragMark = t.name.toUpperCase() === "FRAG" ? " siege-ticket--frag" : "";
-            return `<li class="siege-ticket${fragMark}">
-              <span class="siege-ticket-guild">${escapeHtml(t.name)}</span>
-              <span class="siege-ticket-meta">earned ${escapeHtml(formatShortDate(t.firstDate))}</span>
-            </li>`;
-          })
-          .join("")}</ul>`
-      : `<p class="siege-empty">No siege tickets yet this week. Report fort winners to add them.</p>`;
+    const ticketListHtml =
+      tickets.length > 0
+        ? `<div class="siege-alliance-grid">
+            ${renderAllianceTicketBlock(ourLabel, ours, "siege-alliance--ours")}
+            ${renderAllianceTicketBlock(eliteLabel, elite, "siege-alliance--elite")}
+          </div>`
+        : `<p class="siege-empty">No siege tickets yet this week. Report fort winners to add them.</p>`;
 
     const dailyHtml = dailyLog.length
       ? `<ol class="siege-daily-log">${dailyLog
           .map((day) => {
-            const winnerTags = day.winners
-              .map((g) => {
-                const isNew = day.newTickets.some((n) => n.toLowerCase() === g.toLowerCase());
-                const isRepeat = day.alreadyHadTicket.some(
-                  (n) => n.toLowerCase() === g.toLowerCase()
-                );
-                let cls = "siege-winner";
-                if (isNew) cls += " siege-winner--new";
-                else if (isRepeat) cls += " siege-winner--repeat";
-                const note = isNew
-                  ? ' <em class="siege-winner-note">+ticket</em>'
-                  : isRepeat
-                    ? ' <em class="siege-winner-note">already had ticket</em>'
-                    : "";
-                return `<span class="${cls}">${escapeHtml(g)}${note}</span>`;
-              })
-              .join("");
+            const ourWinners = day.winners.filter((g) => isSiegeOurAllianceGuild(g));
+            const eliteWinners = day.winners.filter((g) => !isSiegeOurAllianceGuild(g));
             return `<li class="siege-day">
               <span class="siege-day-date">${escapeHtml(formatShortDate(day.date))}</span>
-              <div class="siege-day-winners">${winnerTags}</div>
+              ${renderSiegeDayAllianceGroup(ourLabel, ourWinners, day)}
+              ${renderSiegeDayAllianceGroup(eliteLabel, eliteWinners, day)}
             </li>`;
           })
           .join("")}</ol>`
@@ -1746,7 +1800,7 @@
     siegeTicketsPanel.innerHTML = `
       <div class="siege-head">
         <h2 class="siege-title">Siege tickets this week</h2>
-        <p class="siege-sub">${escapeHtml(String(ticketCount))} guild${ticketCount === 1 ? "" : "s"} with a ticket · first fort win only counts once per week</p>
+        <p class="siege-sub">${escapeHtml(String(ticketCount))} guild${ticketCount === 1 ? "" : "s"} with a ticket · ${escapeHtml(String(ours.length))} Our Alliance · ${escapeHtml(String(elite.length))} ${escapeHtml(eliteLabel)} · first fort win only counts once per week</p>
       </div>
       <section class="siege-block" aria-label="Ticket holders">
         <h3 class="siege-block-title">Ticket holders</h3>
@@ -1759,7 +1813,7 @@
     `;
 
     countEl.textContent = ticketCount
-      ? `${ticketCount} ticket${ticketCount === 1 ? "" : "s"}`
+      ? `${ours.length} ours · ${elite.length} elite`
       : "";
   }
 

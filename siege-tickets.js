@@ -3,6 +3,9 @@
  * Add or edit dates when fort winners are reported:
  *   "YYYY-MM-DD": ["GuildName", ...]
  */
+window.SIEGE_OUR_ALLIANCE = ["FRAG", "Omen", "Prime", "Arsha"];
+window.SIEGE_ELITE_ALLIANCE_LABEL = "Elite Alliance";
+
 window.SIEGE_FORT_WINS = {
   "2026-08-15": [
     "Arsha",
