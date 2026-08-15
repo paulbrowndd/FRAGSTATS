@@ -509,6 +509,149 @@ body {
   color: var(--accent-bright);
 }
 
+/* Weekly siege tickets */
+.siege-tickets-panel {
+  padding: 1rem 1.15rem 1.1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.siege-tickets-panel[hidden] {
+  display: none !important;
+}
+
+.siege-head {
+  margin-bottom: 1rem;
+}
+
+.siege-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.siege-sub {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.siege-block + .siege-block {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.siege-block-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.siege-ticket-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.siege-ticket {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.siege-ticket--frag {
+  border-color: var(--accent);
+  background: rgba(212, 160, 84, 0.08);
+}
+
+.siege-ticket-guild {
+  font-weight: 700;
+  color: var(--accent-bright);
+}
+
+.siege-ticket-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.siege-daily-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.siege-day-date {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.siege-day-winners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.siege-winner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.84rem;
+}
+
+.siege-winner--new {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.siege-winner--repeat {
+  opacity: 0.65;
+}
+
+.siege-winner-note {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.siege-winner--new .siege-winner-note {
+  color: var(--accent-bright);
+}
+
+.siege-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.siege-empty--sub {
+  font-size: 0.85rem;
+}
+
 /* MVP */
 .mvp-section {
   padding: 1.15rem 1.15rem 1rem;

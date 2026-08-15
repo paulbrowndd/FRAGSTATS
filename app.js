@@ -32,6 +32,7 @@
     MONTHLY_ANALYSIS: "monthly-analysis",
     LIFETIME: "lifetime",
     ATTENDANCE: "attendance",
+    SIEGE_TICKETS: "siege-tickets",
   };
 
   const ATTENDANCE_COLS = [
@@ -69,6 +70,9 @@
   const warAnalysisFormula = document.getElementById("war-analysis-formula");
   const warAnalysisSummary = document.getElementById("war-analysis-summary");
   const warAnalysisPriorMvps = document.getElementById("war-analysis-prior-mvps");
+  const siegeTicketsPanel = document.getElementById("siege-tickets-panel");
+  const statsTablePanel = document.getElementById("stats-table-panel");
+  const toolbarPanel = document.getElementById("toolbar-panel");
 
   const MVP_COMPONENTS = [
     { key: "enemyKills", label: "Enemy kills", weight: 0.2 },
@@ -692,6 +696,83 @@
     return window.NODE_WAR_DATA && typeof window.NODE_WAR_DATA === "object"
       ? window.NODE_WAR_DATA
       : {};
+  }
+
+  function getSiegeFortWins() {
+    return window.SIEGE_FORT_WINS && typeof window.SIEGE_FORT_WINS === "object"
+      ? window.SIEGE_FORT_WINS
+      : {};
+  }
+
+  function normalizeSiegeGuildName(name) {
+    return String(name || "").trim();
+  }
+
+  function siegeFortWinDates() {
+    return Object.keys(getSiegeFortWins())
+      .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+      .sort();
+  }
+
+  /** Sun–Sat weeks from node war dates plus any fort-win dates. */
+  function uniqueWeekStartsAll(data) {
+    const set = new Map();
+    for (const d of sortedDateKeys(data)) {
+      const sun = sundayOfWeekUTC(d);
+      if (!set.has(sun)) set.set(sun, new Set());
+      set.get(sun).add(d);
+    }
+    for (const d of siegeFortWinDates()) {
+      const sun = sundayOfWeekUTC(d);
+      if (!set.has(sun)) set.set(sun, new Set());
+      set.get(sun).add(d);
+    }
+    return Array.from(set.entries())
+      .map(([sunday, dateSet]) => ({ sunday, dates: Array.from(dateSet).sort() }))
+      .sort((a, b) => b.sunday.localeCompare(a.sunday));
+  }
+
+  function computeWeekSiegeTickets(sundayIso) {
+    const wins = getSiegeFortWins();
+    const saturday = saturdayOfWeekUTC(sundayIso);
+    const ticketByKey = new Map();
+    const dailyLog = [];
+
+    const dates = siegeFortWinDates().filter((d) => d >= sundayIso && d <= saturday);
+
+    for (const date of dates) {
+      const rawGuilds = wins[date];
+      if (!Array.isArray(rawGuilds)) continue;
+
+      const winners = [];
+      const newTickets = [];
+      const alreadyHadTicket = [];
+
+      for (const raw of rawGuilds) {
+        const name = normalizeSiegeGuildName(raw);
+        if (!name) continue;
+        winners.push(name);
+        const key = name.toLowerCase();
+        if (!ticketByKey.has(key)) {
+          ticketByKey.set(key, { name, firstDate: date });
+          newTickets.push(name);
+        } else {
+          alreadyHadTicket.push(name);
+        }
+      }
+
+      if (winners.length) {
+        dailyLog.push({ date, winners, newTickets, alreadyHadTicket });
+      }
+    }
+
+    const tickets = Array.from(ticketByKey.values()).sort(
+      (a, b) =>
+        a.firstDate.localeCompare(b.firstDate) ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
+
+    return { tickets, dailyLog, ticketCount: tickets.length };
   }
 
   function sortedDateKeys(data) {
@@ -1587,6 +1668,101 @@
     if (warAnalysisPanel) warAnalysisPanel.hidden = true;
   }
 
+  function setMainViewChrome(view) {
+    const siege = view === VIEW.SIEGE_TICKETS;
+    if (statsTablePanel) statsTablePanel.hidden = siege;
+    if (toolbarPanel) toolbarPanel.hidden = siege;
+    if (siegeTicketsPanel) siegeTicketsPanel.hidden = !siege;
+  }
+
+  function renderSiegeTicketsTabBody() {
+    hideStatsPanels();
+    setMainViewChrome(VIEW.SIEGE_TICKETS);
+
+    const data = getWarData();
+    const weeks = uniqueWeekStartsAll(data);
+    const sun =
+      currentWeekSunday && weeks.some((w) => w.sunday === currentWeekSunday)
+        ? currentWeekSunday
+        : weeks[0]?.sunday;
+
+    if (!sun || !siegeTicketsPanel) {
+      metaEl.textContent = "Weekly siege tickets";
+      countEl.textContent = "";
+      if (siegeTicketsPanel) {
+        siegeTicketsPanel.innerHTML =
+          '<p class="siege-empty">No weeks available yet. Add fort wins in siege-tickets.js.</p>';
+      }
+      return;
+    }
+
+    currentWeekSunday = sun;
+    if (weekSelect.value !== sun) weekSelect.value = sun;
+
+    const { tickets, dailyLog, ticketCount } = computeWeekSiegeTickets(sun);
+    const weekLabel = formatWeekRangeLabel(sun);
+    metaEl.textContent = `Weekly siege tickets · Sun–Sat ${weekLabel}`;
+
+    const ticketListHtml = tickets.length
+      ? `<ul class="siege-ticket-list">${tickets
+          .map((t) => {
+            const fragMark = t.name.toUpperCase() === "FRAG" ? " siege-ticket--frag" : "";
+            return `<li class="siege-ticket${fragMark}">
+              <span class="siege-ticket-guild">${escapeHtml(t.name)}</span>
+              <span class="siege-ticket-meta">earned ${escapeHtml(formatShortDate(t.firstDate))}</span>
+            </li>`;
+          })
+          .join("")}</ul>`
+      : `<p class="siege-empty">No siege tickets yet this week. Report fort winners to add them.</p>`;
+
+    const dailyHtml = dailyLog.length
+      ? `<ol class="siege-daily-log">${dailyLog
+          .map((day) => {
+            const winnerTags = day.winners
+              .map((g) => {
+                const isNew = day.newTickets.some((n) => n.toLowerCase() === g.toLowerCase());
+                const isRepeat = day.alreadyHadTicket.some(
+                  (n) => n.toLowerCase() === g.toLowerCase()
+                );
+                let cls = "siege-winner";
+                if (isNew) cls += " siege-winner--new";
+                else if (isRepeat) cls += " siege-winner--repeat";
+                const note = isNew
+                  ? ' <em class="siege-winner-note">+ticket</em>'
+                  : isRepeat
+                    ? ' <em class="siege-winner-note">already had ticket</em>'
+                    : "";
+                return `<span class="${cls}">${escapeHtml(g)}${note}</span>`;
+              })
+              .join("");
+            return `<li class="siege-day">
+              <span class="siege-day-date">${escapeHtml(formatShortDate(day.date))}</span>
+              <div class="siege-day-winners">${winnerTags}</div>
+            </li>`;
+          })
+          .join("")}</ol>`
+      : `<p class="siege-empty siege-empty--sub">No fort wins logged for this week.</p>`;
+
+    siegeTicketsPanel.innerHTML = `
+      <div class="siege-head">
+        <h2 class="siege-title">Siege tickets this week</h2>
+        <p class="siege-sub">${escapeHtml(String(ticketCount))} guild${ticketCount === 1 ? "" : "s"} with a ticket · first fort win only counts once per week</p>
+      </div>
+      <section class="siege-block" aria-label="Ticket holders">
+        <h3 class="siege-block-title">Ticket holders</h3>
+        ${ticketListHtml}
+      </section>
+      <section class="siege-block" aria-label="Daily fort wins">
+        <h3 class="siege-block-title">Daily fort wins</h3>
+        ${dailyHtml}
+      </section>
+    `;
+
+    countEl.textContent = ticketCount
+      ? `${ticketCount} ticket${ticketCount === 1 ? "" : "s"}`
+      : "";
+  }
+
   function renderWarAnalysisPanel(ranked, meta, data) {
     if (!warAnalysisPanel) return;
     const show = isWarAnalysisView() && ranked.length > 0;
@@ -1865,6 +2041,13 @@
   function renderBody() {
     const data = getWarData();
 
+    if (currentView === VIEW.SIEGE_TICKETS) {
+      renderSiegeTicketsTabBody();
+      return;
+    }
+
+    setMainViewChrome(currentView);
+
     if (currentView === VIEW.ATTENDANCE) {
       renderAttendanceTabBody(data);
       return;
@@ -1976,10 +2159,15 @@
 
   function populateWeekSelect() {
     const data = getWarData();
-    const weeks = uniqueWeekStarts(data);
+    const weeks = uniqueWeekStartsAll(data);
     weekSelect.innerHTML = weeks
       .map(({ sunday, dates }) => {
-        const label = `${formatWeekRangeLabel(sunday)} (${dates.length} day${dates.length === 1 ? "" : "s"})`;
+        const fortDays = dates.filter((d) => Array.isArray(getSiegeFortWins()[d])).length;
+        const dayPart =
+          fortDays > 0
+            ? `${dates.length} day${dates.length === 1 ? "" : "s"} · ${fortDays} fort win day${fortDays === 1 ? "" : "s"}`
+            : `${dates.length} day${dates.length === 1 ? "" : "s"}`;
+        const label = `${formatWeekRangeLabel(sunday)} (${dayPart})`;
         return `<option value="${escapeHtml(sunday)}">${escapeHtml(label)}</option>`;
       })
       .join("");
@@ -2010,7 +2198,10 @@
 
   function updateScopeVisibility() {
     const daily = currentView === VIEW.DAILY;
-    const weekly = currentView === VIEW.WEEKLY || currentView === VIEW.WEEKLY_ANALYSIS;
+    const weekly =
+      currentView === VIEW.WEEKLY ||
+      currentView === VIEW.WEEKLY_ANALYSIS ||
+      currentView === VIEW.SIEGE_TICKETS;
     const monthly = currentView === VIEW.MONTHLY || currentView === VIEW.MONTHLY_ANALYSIS;
     const attendance = currentView === VIEW.ATTENDANCE;
     const lifetime = currentView === VIEW.LIFETIME;
@@ -2054,7 +2245,7 @@
     if (keys.length) {
       currentDate = keys[keys.length - 1];
       dateSelect.value = currentDate;
-      const w = uniqueWeekStarts(data);
+      const w = uniqueWeekStartsAll(data);
       if (w.length) {
         currentWeekSunday = sundayOfWeekUTC(currentDate);
         if (!w.some((x) => x.sunday === currentWeekSunday)) currentWeekSunday = w[0].sunday;

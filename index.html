@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260814h" />
+    <link rel="stylesheet" href="styles.css?v=20260815a" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -45,6 +45,9 @@
           <button type="button" class="tab" data-view="attendance" role="tab" aria-selected="false">
             Attendance
           </button>
+          <button type="button" class="tab" data-view="siege-tickets" role="tab" aria-selected="false">
+            Weekly siege tickets
+          </button>
         </div>
 
         <div id="scope-row" class="scope-row">
@@ -63,7 +66,7 @@
         </div>
       </section>
 
-      <section class="panel panel--toolbar" aria-label="Filters">
+      <section id="toolbar-panel" class="panel panel--toolbar" aria-label="Filters">
         <label class="search" for="search">
           <span class="visually-hidden">Filter by family name</span>
           <input
@@ -113,7 +116,9 @@
         <p id="war-analysis-prior-mvps" class="war-analysis-prior-mvps" hidden></p>
       </section>
 
-      <div class="table-scroll panel panel--table" role="region" aria-label="Node war statistics table">
+      <div id="siege-tickets-panel" class="siege-tickets-panel panel" hidden aria-label="Weekly siege tickets"></div>
+
+      <div id="stats-table-panel" class="table-scroll panel panel--table" role="region" aria-label="Node war statistics table">
         <table>
           <thead>
             <tr id="thead"></tr>
@@ -126,6 +131,7 @@
 
     <script src="guild.js?v=20260814e"></script>
     <script src="data.js"></script>
-    <script src="app.js?v=20260814g"></script>
+    <script src="siege-tickets.js"></script>
+    <script src="app.js?v=20260815a"></script>
   </body>
 </html>
