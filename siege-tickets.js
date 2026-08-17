@@ -19,4 +19,5 @@ window.SIEGE_FORT_WINS = {
     "Desac",
     "Mayhem",
   ],
+  "2026-08-16": ["Arsha"],
 };
