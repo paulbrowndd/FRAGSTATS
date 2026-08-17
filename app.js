@@ -704,6 +704,12 @@
       : {};
   }
 
+  function getSiegeCastleHolders() {
+    return window.SIEGE_CASTLE_HOLDERS && typeof window.SIEGE_CASTLE_HOLDERS === "object"
+      ? window.SIEGE_CASTLE_HOLDERS
+      : {};
+  }
+
   function getSiegeOurAllianceGuilds() {
     const list = window.SIEGE_OUR_ALLIANCE;
     return Array.isArray(list)
@@ -733,9 +739,14 @@
 
   function renderSiegeTicketItem(t) {
     const fragMark = t.name.toUpperCase() === "FRAG" ? " siege-ticket--frag" : "";
-    return `<li class="siege-ticket${fragMark}">
+    const castleMark = t.source === "castle" ? " siege-ticket--castle" : "";
+    const meta =
+      t.source === "castle"
+        ? "castle holder"
+        : `earned ${formatShortDate(t.firstDate)}`;
+    return `<li class="siege-ticket${fragMark}${castleMark}">
       <span class="siege-ticket-guild">${escapeHtml(t.name)}</span>
-      <span class="siege-ticket-meta">earned ${escapeHtml(formatShortDate(t.firstDate))}</span>
+      <span class="siege-ticket-meta">${escapeHtml(meta)}</span>
     </li>`;
   }
 
@@ -803,9 +814,22 @@
 
   function computeWeekSiegeTickets(sundayIso) {
     const wins = getSiegeFortWins();
+    const castleHolders = getSiegeCastleHolders();
     const saturday = saturdayOfWeekUTC(sundayIso);
     const ticketByKey = new Map();
     const dailyLog = [];
+
+    const castleGuilds = castleHolders[sundayIso];
+    if (Array.isArray(castleGuilds)) {
+      for (const raw of castleGuilds) {
+        const name = normalizeSiegeGuildName(raw);
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (!ticketByKey.has(key)) {
+          ticketByKey.set(key, { name, firstDate: sundayIso, source: "castle" });
+        }
+      }
+    }
 
     const dates = siegeFortWinDates().filter((d) => d >= sundayIso && d <= saturday);
 
@@ -823,7 +847,7 @@
         winners.push(name);
         const key = name.toLowerCase();
         if (!ticketByKey.has(key)) {
-          ticketByKey.set(key, { name, firstDate: date });
+          ticketByKey.set(key, { name, firstDate: date, source: "fort" });
           newTickets.push(name);
         } else {
           alreadyHadTicket.push(name);
@@ -837,6 +861,7 @@
 
     const tickets = Array.from(ticketByKey.values()).sort(
       (a, b) =>
+        (a.source === "castle" ? 0 : 1) - (b.source === "castle" ? 0 : 1) ||
         a.firstDate.localeCompare(b.firstDate) ||
         a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
     );
