@@ -246,7 +246,7 @@
       pdf.addImage(img, "PNG", 0, 0, canvas.width, canvas.height);
       pdf.save(`FRAG-class-rankings-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch {
-      alert("Could not generate PDF. Check your connection and try again, or use Export JSON.");
+      alert("Could not generate PDF. Check your connection and try again.");
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -342,16 +342,6 @@
     renderBoard();
   }
 
-  function exportData() {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(
-      new Blob([JSON.stringify(items, null, 2)], { type: "application/json" })
-    );
-    a.download = "FRAG-class-rankings.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
   function importData(file) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -403,10 +393,6 @@
       }
       if (e.target.closest("#cr-add")) {
         addSpec();
-        return;
-      }
-      if (e.target.closest("#cr-export")) {
-        exportData();
         return;
       }
       if (e.target.closest("#cr-download")) {
