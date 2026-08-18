@@ -14,6 +14,7 @@
     "Pack 2 Pack",
     "Tower Grind Spots",
   ];
+  const TOOL_CREATED_BY = "X";
   const TIERS = [
     ["S+", "splus"],
     ["S", "s"],
@@ -39,6 +40,15 @@
   function normalizeMode(mode) {
     if (mode === "Siege") return "Uncapped Siege";
     return mode;
+  }
+
+  function creditHTML() {
+    return `<span class="cr-credit">Tool created by <strong>${esc(TOOL_CREATED_BY)}</strong></span>`;
+  }
+
+  function applyCredit() {
+    const el = document.getElementById("cr-credit");
+    if (el) el.innerHTML = creditHTML();
   }
 
   function migrateItems(list) {
@@ -204,7 +214,10 @@
         day: "numeric",
       });
       sheet.innerHTML = `<div class="cr-export-head">
-          <h2 class="cr-export-title">FRAG <strong>Class Rankings</strong></h2>
+          <div class="cr-export-title-row">
+            <h2 class="cr-export-title">FRAG <strong>Class Rankings</strong></h2>
+            ${creditHTML()}
+          </div>
           <p class="cr-export-sub">Multi-mode tier list · ${esc(dateLabel)}</p>
           <p class="cr-export-sub cr-export-filters">${esc(exportFilterLabel())}</p>
         </div>
@@ -450,6 +463,7 @@
       panelEl = el;
       loadItems();
       populateModeSelects();
+      applyCredit();
       bindEvents();
     },
     render() {

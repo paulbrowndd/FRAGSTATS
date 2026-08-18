@@ -1607,10 +1607,30 @@ tfoot td.str {
   margin-bottom: 1rem;
 }
 
+.cr-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 1rem;
+}
+
 .cr-title {
   margin: 0;
   font-size: clamp(1.2rem, 2.5vw, 1.65rem);
   letter-spacing: 0.02em;
+}
+
+.cr-credit {
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  padding-left: 0.85rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cr-credit strong {
+  color: var(--accent-bright);
+  font-weight: 650;
 }
 
 .cr-title strong {
@@ -1969,6 +1989,13 @@ tfoot td.str {
 
 .cr-export-head {
   margin-bottom: 1rem;
+}
+
+.cr-export-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
 }
 
 .cr-export-title {
