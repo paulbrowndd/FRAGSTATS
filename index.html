@@ -124,14 +124,10 @@
       <section id="class-rankings-panel" class="class-rankings-panel panel" hidden aria-label="FRAG Class Rankings">
         <div class="cr-head">
           <h2 class="cr-title">FRAG <strong>Class Rankings</strong></h2>
-          <p class="cr-sub">Uncapped Node War &amp; Siege · 7 tiers · 5-star difficulty · Drag &amp; drop</p>
+          <p class="cr-sub">7 tiers · 5-star difficulty · Drag &amp; drop</p>
           <div class="cr-controls">
             <input id="cr-search" type="search" placeholder="Search class/spec…" autocomplete="off" />
-            <select id="cr-mode">
-              <option>All Modes</option>
-              <option>Uncapped Node War</option>
-              <option>Siege</option>
-            </select>
+            <select id="cr-mode"></select>
             <select id="cr-spec-filter">
               <option>All Specs</option>
               <option>Succession</option>
@@ -175,11 +171,7 @@
             <p class="cr-modal-note">The card will use a generated placeholder until a direct artwork URL is supplied. Official class-page links are included on every card.</p>
             <div class="cr-modal-grid">
               <label>Mode
-                <select id="cr-fm">
-                  <option value="both">Both</option>
-                  <option>Uncapped Node War</option>
-                  <option>Siege</option>
-                </select>
+                <select id="cr-fm"></select>
               </label>
               <label>Difficulty 0–5<input id="cr-fd" type="number" min="0" max="5" /></label>
             </div>
@@ -210,7 +202,7 @@
     <script src="data.js"></script>
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
-    <script src="class-rankings.js?v=20260818c"></script>
-    <script src="app.js?v=20260818c"></script>
+    <script src="class-rankings.js?v=20260818d"></script>
+    <script src="app.js?v=20260818d"></script>
   </body>
 </html>

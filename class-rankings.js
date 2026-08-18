@@ -6,6 +6,14 @@
   const LEGACY_STORAGE_KEY = "frag-v3";
   const POOL_TIER = "Unranked";
   const MAX_STARS = 5;
+  const MODES = [
+    "Uncapped Node War",
+    "Uncapped Siege",
+    "Capped Siege",
+    "Capped Nodewar",
+    "Pack 2 Pack",
+    "Tower Grind Spots",
+  ];
   const TIERS = [
     ["S+", "splus"],
     ["S", "s"],
@@ -28,6 +36,11 @@
       : [];
   }
 
+  function normalizeMode(mode) {
+    if (mode === "Siege") return "Uncapped Siege";
+    return mode;
+  }
+
   function migrateItems(list) {
     if (!Array.isArray(list)) return seedData().slice();
     const onlyLegacyD = list.length > 0 && list.every((x) => x.tier === "D");
@@ -35,6 +48,7 @@
       ...item,
       difficulty: Math.min(MAX_STARS, Math.max(0, Number(item.difficulty) || 0)),
       tier: onlyLegacyD ? POOL_TIER : item.tier || POOL_TIER,
+      mode: normalizeMode(item.mode),
     }));
   }
 
@@ -191,7 +205,7 @@
       });
       sheet.innerHTML = `<div class="cr-export-head">
           <h2 class="cr-export-title">FRAG <strong>Class Rankings</strong></h2>
-          <p class="cr-export-sub">Uncapped Node War &amp; Siege · ${esc(dateLabel)}</p>
+          <p class="cr-export-sub">Multi-mode tier list · ${esc(dateLabel)}</p>
           <p class="cr-export-sub cr-export-filters">${esc(exportFilterLabel())}</p>
         </div>
         <section class="cr-pool-section cr-pool-section--export">
@@ -339,6 +353,21 @@
     reader.readAsText(file);
   }
 
+  function populateModeSelects() {
+    const filter = document.getElementById("cr-mode");
+    const edit = document.getElementById("cr-fm");
+    if (filter) {
+      filter.innerHTML =
+        `<option>All Modes</option>` +
+        MODES.map((m) => `<option>${esc(m)}</option>`).join("");
+    }
+    if (edit) {
+      edit.innerHTML =
+        `<option value="both">All Modes</option>` +
+        MODES.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
+    }
+  }
+
   function bindEvents() {
     if (mounted || !panelEl) return;
     mounted = true;
@@ -420,6 +449,7 @@
     mount(el) {
       panelEl = el;
       loadItems();
+      populateModeSelects();
       bindEvents();
     },
     render() {

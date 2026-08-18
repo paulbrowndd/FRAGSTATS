@@ -1775,7 +1775,7 @@
   function renderClassRankingsTabBody() {
     hideStatsPanels();
     setMainViewChrome(VIEW.CLASS_RANKINGS);
-    metaEl.textContent = "FRAG Class Rankings · Uncapped Node War & Siege";
+    metaEl.textContent = "FRAG Class Rankings · Multi-mode tier list";
     countEl.textContent = "";
     if (window.FRAGClassRankings) window.FRAGClassRankings.render();
   }
