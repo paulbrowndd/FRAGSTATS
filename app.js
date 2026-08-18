@@ -33,6 +33,7 @@
     LIFETIME: "lifetime",
     ATTENDANCE: "attendance",
     SIEGE_TICKETS: "siege-tickets",
+    CLASS_RANKINGS: "class-rankings",
   };
 
   const ATTENDANCE_COLS = [
@@ -71,6 +72,7 @@
   const warAnalysisSummary = document.getElementById("war-analysis-summary");
   const warAnalysisPriorMvps = document.getElementById("war-analysis-prior-mvps");
   const siegeTicketsPanel = document.getElementById("siege-tickets-panel");
+  const classRankingsPanel = document.getElementById("class-rankings-panel");
   const statsTablePanel = document.getElementById("stats-table-panel");
   const toolbarPanel = document.getElementById("toolbar-panel");
 
@@ -1763,10 +1765,19 @@
   }
 
   function setMainViewChrome(view) {
-    const siege = view === VIEW.SIEGE_TICKETS;
-    if (statsTablePanel) statsTablePanel.hidden = siege;
-    if (toolbarPanel) toolbarPanel.hidden = siege;
-    if (siegeTicketsPanel) siegeTicketsPanel.hidden = !siege;
+    const standalone = view === VIEW.SIEGE_TICKETS || view === VIEW.CLASS_RANKINGS;
+    if (statsTablePanel) statsTablePanel.hidden = standalone;
+    if (toolbarPanel) toolbarPanel.hidden = standalone;
+    if (siegeTicketsPanel) siegeTicketsPanel.hidden = view !== VIEW.SIEGE_TICKETS;
+    if (classRankingsPanel) classRankingsPanel.hidden = view !== VIEW.CLASS_RANKINGS;
+  }
+
+  function renderClassRankingsTabBody() {
+    hideStatsPanels();
+    setMainViewChrome(VIEW.CLASS_RANKINGS);
+    metaEl.textContent = "FRAG Class Rankings · Uncapped Node War & Siege";
+    countEl.textContent = "";
+    if (window.FRAGClassRankings) window.FRAGClassRankings.render();
   }
 
   function renderSiegeTicketsTabBody() {
@@ -2125,6 +2136,11 @@
       return;
     }
 
+    if (currentView === VIEW.CLASS_RANKINGS) {
+      renderClassRankingsTabBody();
+      return;
+    }
+
     setMainViewChrome(currentView);
 
     if (currentView === VIEW.ATTENDANCE) {
@@ -2284,11 +2300,13 @@
     const monthly = currentView === VIEW.MONTHLY || currentView === VIEW.MONTHLY_ANALYSIS;
     const attendance = currentView === VIEW.ATTENDANCE;
     const lifetime = currentView === VIEW.LIFETIME;
+    const classRankings = currentView === VIEW.CLASS_RANKINGS;
 
     dateField.hidden = !daily;
     weekField.hidden = !weekly && !attendance;
     monthField.hidden = !monthly && !attendance;
-    scopeRow.hidden = lifetime || (!daily && !weekly && !monthly && !attendance);
+    scopeRow.hidden =
+      lifetime || classRankings || (!daily && !weekly && !monthly && !attendance);
 
     weekField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "week");
     monthField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "month");
@@ -2422,6 +2440,10 @@
     });
 
     setView(VIEW.DAILY);
+
+    if (classRankingsPanel && window.FRAGClassRankings) {
+      window.FRAGClassRankings.mount(classRankingsPanel);
+    }
   }
 
   init();

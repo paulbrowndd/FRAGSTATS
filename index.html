@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260817b" />
+    <link rel="stylesheet" href="styles.css?v=20260818a" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -47,6 +47,9 @@
           </button>
           <button type="button" class="tab" data-view="siege-tickets" role="tab" aria-selected="false">
             Weekly siege tickets
+          </button>
+          <button type="button" class="tab" data-view="class-rankings" role="tab" aria-selected="false">
+            FRAG Class Rankings
           </button>
         </div>
 
@@ -118,6 +121,71 @@
 
       <div id="siege-tickets-panel" class="siege-tickets-panel panel" hidden aria-label="Weekly siege tickets"></div>
 
+      <section id="class-rankings-panel" class="class-rankings-panel panel" hidden aria-label="FRAG Class Rankings">
+        <div class="cr-head">
+          <h2 class="cr-title">FRAG <strong>Class Rankings</strong></h2>
+          <p class="cr-sub">Uncapped Node War &amp; Siege · 7 tiers · 10-star difficulty · Drag &amp; drop</p>
+          <div class="cr-controls">
+            <input id="cr-search" type="search" placeholder="Search class/spec…" autocomplete="off" />
+            <select id="cr-mode">
+              <option>All Modes</option>
+              <option>Uncapped Node War</option>
+              <option>Siege</option>
+            </select>
+            <select id="cr-spec-filter">
+              <option>All Specs</option>
+              <option>Succession</option>
+              <option>Awakening</option>
+              <option>Ascension</option>
+            </select>
+            <button type="button" id="cr-add">+ Add Spec</button>
+            <button type="button" id="cr-export">Export</button>
+            <button type="button" id="cr-import-btn">Import</button>
+            <input id="cr-import" hidden type="file" accept=".json" />
+          </div>
+        </div>
+        <div id="cr-board" class="cr-board"></div>
+
+        <div id="cr-modal" class="cr-modal" aria-hidden="true">
+          <div id="cr-modal-backdrop" class="cr-modal-backdrop"></div>
+          <div class="cr-modal-box" role="dialog" aria-modal="true" aria-labelledby="cr-modal-title">
+            <h2 id="cr-modal-title">Edit Spec</h2>
+            <div class="cr-modal-grid">
+              <label>Class<input id="cr-fc" /></label>
+              <label>Spec
+                <select id="cr-fs">
+                  <option>Succession</option>
+                  <option>Awakening</option>
+                  <option>Ascension</option>
+                </select>
+              </label>
+            </div>
+            <label>Official image URL (optional)
+              <input id="cr-fi" placeholder="Direct official image URL" />
+            </label>
+            <p class="cr-modal-note">The card will use a generated placeholder until a direct artwork URL is supplied. Official class-page links are included on every card.</p>
+            <div class="cr-modal-grid">
+              <label>Mode
+                <select id="cr-fm">
+                  <option value="both">Both</option>
+                  <option>Uncapped Node War</option>
+                  <option>Siege</option>
+                </select>
+              </label>
+              <label>Difficulty 0–10<input id="cr-fd" type="number" min="0" max="10" /></label>
+            </div>
+            <label>Roles<input id="cr-fr" placeholder="Frontline, Flex, Defense, Cannon" /></label>
+            <label>Notes<textarea id="cr-fn" rows="3"></textarea></label>
+            <h3>Performance scores</h3>
+            <div id="cr-scores" class="cr-modal-grid"></div>
+            <div class="cr-modal-actions">
+              <button type="button" class="cr-btn-primary" id="cr-save">Save</button>
+              <button type="button" class="cr-btn-secondary" id="cr-cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div id="stats-table-panel" class="table-scroll panel panel--table" role="region" aria-label="Node war statistics table">
         <table>
           <thead>
@@ -132,6 +200,8 @@
     <script src="guild.js?v=20260817a"></script>
     <script src="data.js"></script>
     <script src="siege-tickets.js"></script>
-    <script src="app.js?v=20260817b"></script>
+    <script src="class-rankings-data.js"></script>
+    <script src="class-rankings.js"></script>
+    <script src="app.js?v=20260818a"></script>
   </body>
 </html>
