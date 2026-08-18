@@ -1873,3 +1873,45 @@ tfoot td.str {
     grid-template-columns: 1fr;
   }
 }
+
+.cr-export-sheet {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 1800px;
+  padding: 1.25rem;
+  background: #07090d;
+  color: #f5f7fa;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.cr-export-head {
+  margin-bottom: 1rem;
+}
+
+.cr-export-title {
+  margin: 0;
+  font-size: 1.75rem;
+  letter-spacing: 0.02em;
+}
+
+.cr-export-title strong {
+  color: #d8ad55;
+}
+
+.cr-export-sub {
+  margin: 0.35rem 0 0;
+  color: #8f9aaa;
+  font-size: 0.9rem;
+}
+
+.cr-board--export {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(170px, 1fr));
+  gap: 0.65rem;
+}
+
+.cr-controls button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}

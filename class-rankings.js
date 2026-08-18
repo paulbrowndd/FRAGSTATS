@@ -69,10 +69,21 @@
     );
   }
 
-  function cardHTML(c) {
+  function boardHTML(itemList) {
+    return TIERS.map(([tier, cls]) => {
+      const tierItems = itemList.filter((x) => x.tier === tier);
+      return `<section class="cr-tier ${cls}" data-tier="${esc(tier)}">
+        <div class="cr-tierhead"><span>${esc(tier)}</span><small>${tierItems.length}</small></div>
+        <div class="cr-drop">${tierItems.map((c) => cardHTML(c, false)).join("") || '<div class="cr-empty">Drag specs here</div>'}</div>
+      </section>`;
+    }).join("");
+  }
+
+  function cardHTML(c, draggable) {
     const ph = placeholder(c);
     const img = esc(c.image || ph);
-    return `<div class="cr-card" draggable="true" data-id="${esc(c.id)}">
+    const dragAttr = draggable === false ? "" : ' draggable="true"';
+    return `<div class="cr-card"${dragAttr} data-id="${esc(c.id)}">
       <img class="cr-thumb" src="${img}" alt="" data-fallback="${esc(ph)}">
       <div>
         <div class="cr-name">${esc(c.class)}</div>
@@ -87,14 +98,88 @@
   function renderBoard() {
     const board = document.getElementById("cr-board");
     if (!board) return;
-    const v = visible();
-    board.innerHTML = TIERS.map(([tier, cls]) => {
-      const tierItems = v.filter((x) => x.tier === tier);
-      return `<section class="cr-tier ${cls}" data-tier="${esc(tier)}">
-        <div class="cr-tierhead"><span>${esc(tier)}</span><small>${tierItems.length}</small></div>
-        <div class="cr-drop">${tierItems.map(cardHTML).join("") || '<div class="cr-empty">Drag specs here</div>'}</div>
-      </section>`;
-    }).join("");
+    board.innerHTML = boardHTML(visible());
+  }
+
+  function exportFilterLabel() {
+    const q = document.getElementById("cr-search")?.value?.trim();
+    const mode = document.getElementById("cr-mode")?.value || "All Modes";
+    const spec = document.getElementById("cr-spec-filter")?.value || "All Specs";
+    const parts = [];
+    if (q) parts.push(`search: "${q}"`);
+    if (mode !== "All Modes") parts.push(mode);
+    if (spec !== "All Specs") parts.push(spec);
+    return parts.length ? parts.join(" · ") : "All classes & specs";
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function downloadRankingPdf() {
+    const btn = document.getElementById("cr-download");
+    const prevLabel = btn?.textContent || "Download PDF";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Generating…";
+    }
+
+    try {
+      await loadScript(
+        "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+      );
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+
+      const sheet = document.createElement("div");
+      sheet.className = "cr-export-sheet";
+      const dateLabel = new Date().toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      sheet.innerHTML = `<div class="cr-export-head">
+          <h2 class="cr-export-title">FRAG <strong>Class Rankings</strong></h2>
+          <p class="cr-export-sub">Uncapped Node War &amp; Siege · ${esc(dateLabel)}</p>
+          <p class="cr-export-sub cr-export-filters">${esc(exportFilterLabel())}</p>
+        </div>
+        <div class="cr-board cr-board--export">${boardHTML(visible())}</div>`;
+      document.body.appendChild(sheet);
+
+      const canvas = await window.html2canvas(sheet, {
+        scale: 2,
+        backgroundColor: "#07090d",
+        useCORS: true,
+        logging: false,
+      });
+      sheet.remove();
+
+      const img = canvas.toDataURL("image/png");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+      });
+      pdf.addImage(img, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save(`FRAG-class-rankings-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch {
+      alert("Could not generate PDF. Check your connection and try again, or use Export JSON.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prevLabel;
+      }
+    }
   }
 
   function fillModal() {
@@ -226,6 +311,10 @@
       }
       if (e.target.closest("#cr-export")) {
         exportData();
+        return;
+      }
+      if (e.target.closest("#cr-download")) {
+        downloadRankingPdf();
         return;
       }
       if (e.target.closest("#cr-import-btn")) {
