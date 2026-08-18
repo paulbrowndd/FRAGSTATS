@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260818b" />
+    <link rel="stylesheet" href="styles.css?v=20260818c" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -124,7 +124,7 @@
       <section id="class-rankings-panel" class="class-rankings-panel panel" hidden aria-label="FRAG Class Rankings">
         <div class="cr-head">
           <h2 class="cr-title">FRAG <strong>Class Rankings</strong></h2>
-          <p class="cr-sub">Uncapped Node War &amp; Siege · 7 tiers · 10-star difficulty · Drag &amp; drop</p>
+          <p class="cr-sub">Uncapped Node War &amp; Siege · 7 tiers · 5-star difficulty · Drag &amp; drop</p>
           <div class="cr-controls">
             <input id="cr-search" type="search" placeholder="Search class/spec…" autocomplete="off" />
             <select id="cr-mode">
@@ -145,6 +145,14 @@
             <input id="cr-import" hidden type="file" accept=".json" />
           </div>
         </div>
+        <section class="cr-pool-section" aria-label="All classes">
+          <div class="cr-pool-head">
+            <h3 class="cr-pool-title">All classes</h3>
+            <p class="cr-pool-sub">Drag specs into a tier below · scroll to browse</p>
+            <span id="cr-pool-count" class="cr-pool-count"></span>
+          </div>
+          <div id="cr-pool" class="cr-pool" data-tier="Unranked"></div>
+        </section>
         <div id="cr-board" class="cr-board"></div>
 
         <div id="cr-modal" class="cr-modal" aria-hidden="true">
@@ -173,7 +181,7 @@
                   <option>Siege</option>
                 </select>
               </label>
-              <label>Difficulty 0–10<input id="cr-fd" type="number" min="0" max="10" /></label>
+              <label>Difficulty 0–5<input id="cr-fd" type="number" min="0" max="5" /></label>
             </div>
             <label>Roles<input id="cr-fr" placeholder="Frontline, Flex, Defense, Cannon" /></label>
             <label>Notes<textarea id="cr-fn" rows="3"></textarea></label>
@@ -202,7 +210,7 @@
     <script src="data.js"></script>
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
-    <script src="class-rankings.js?v=20260818b"></script>
-    <script src="app.js?v=20260818b"></script>
+    <script src="class-rankings.js?v=20260818c"></script>
+    <script src="app.js?v=20260818c"></script>
   </body>
 </html>

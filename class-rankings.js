@@ -2,7 +2,10 @@
  * FRAG BDO class tier list (drag-and-drop board, localStorage edits).
  */
 (function () {
-  const STORAGE_KEY = "frag-v3";
+  const STORAGE_KEY = "frag-v4";
+  const LEGACY_STORAGE_KEY = "frag-v3";
+  const POOL_TIER = "Unranked";
+  const MAX_STARS = 5;
   const TIERS = [
     ["S+", "splus"],
     ["S", "s"],
@@ -25,13 +28,29 @@
       : [];
   }
 
+  function migrateItems(list) {
+    if (!Array.isArray(list)) return seedData().slice();
+    const onlyLegacyD = list.length > 0 && list.every((x) => x.tier === "D");
+    return list.map((item) => ({
+      ...item,
+      difficulty: Math.min(MAX_STARS, Math.max(0, Number(item.difficulty) || 0)),
+      tier: onlyLegacyD ? POOL_TIER : item.tier || POOL_TIER,
+    }));
+  }
+
   function loadItems() {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      items = Array.isArray(saved) ? saved : seedData().slice();
+      let raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (raw) {
+        items = migrateItems(JSON.parse(raw));
+        save();
+        return;
+      }
     } catch {
-      items = seedData().slice();
+      /* fall through to seed */
     }
+    items = seedData().slice();
   }
 
   function save() {
@@ -51,7 +70,7 @@
 
   function starHTML(c) {
     let out = "";
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= MAX_STARS; i++) {
       out += `<span data-rate="${c.id}" data-n="${i}">${i <= c.difficulty ? "★" : "☆"}</span>`;
     }
     return out;
@@ -69,36 +88,58 @@
     );
   }
 
+  function cardHTML(c, options) {
+    const opts = options || {};
+    const compact = !!opts.compact;
+    const draggable = opts.draggable !== false;
+    const ph = placeholder(c);
+    const img = esc(c.image || ph);
+    const dragAttr = draggable ? ' draggable="true"' : "";
+    const compactClass = compact ? " cr-card--compact" : "";
+    const metaBlock = compact
+      ? `<div class="cr-stars">${starHTML(c)}</div>`
+      : `<div class="cr-stars">${starHTML(c)}</div>
+        <div class="cr-roles">${esc((c.roles || []).join(" • "))}</div>
+        <div class="cr-src"><a href="${esc(c.source)}" target="_blank" rel="noopener">Official class page ↗</a></div>`;
+
+    return `<div class="cr-card${compactClass}"${dragAttr} data-id="${esc(c.id)}">
+      <img class="cr-thumb" src="${img}" alt="" data-fallback="${esc(ph)}">
+      <div>
+        <div class="cr-name">${esc(c.class)}</div>
+        <div class="cr-spec">${esc(c.spec)}</div>
+        ${metaBlock}
+      </div>
+    </div>`;
+  }
+
+  function poolHTML(itemList) {
+    const poolItems = itemList.filter((x) => x.tier === POOL_TIER);
+    return poolItems.length
+      ? poolItems.map((c) => cardHTML(c, { compact: true })).join("")
+      : '<div class="cr-empty cr-empty--pool">All specs are ranked</div>';
+  }
+
   function boardHTML(itemList) {
     return TIERS.map(([tier, cls]) => {
       const tierItems = itemList.filter((x) => x.tier === tier);
       return `<section class="cr-tier ${cls}" data-tier="${esc(tier)}">
         <div class="cr-tierhead"><span>${esc(tier)}</span><small>${tierItems.length}</small></div>
-        <div class="cr-drop">${tierItems.map((c) => cardHTML(c, false)).join("") || '<div class="cr-empty">Drag specs here</div>'}</div>
+        <div class="cr-drop">${tierItems.map((c) => cardHTML(c, { compact: true })).join("") || '<div class="cr-empty">Drag specs here</div>'}</div>
       </section>`;
     }).join("");
   }
 
-  function cardHTML(c, draggable) {
-    const ph = placeholder(c);
-    const img = esc(c.image || ph);
-    const dragAttr = draggable === false ? "" : ' draggable="true"';
-    return `<div class="cr-card"${dragAttr} data-id="${esc(c.id)}">
-      <img class="cr-thumb" src="${img}" alt="" data-fallback="${esc(ph)}">
-      <div>
-        <div class="cr-name">${esc(c.class)}</div>
-        <div class="cr-spec">${esc(c.spec)}</div>
-        <div class="cr-stars">${starHTML(c)}</div>
-        <div class="cr-roles">${esc((c.roles || []).join(" • "))}</div>
-        <div class="cr-src"><a href="${esc(c.source)}" target="_blank" rel="noopener">Official class page ↗</a></div>
-      </div>
-    </div>`;
-  }
-
   function renderBoard() {
     const board = document.getElementById("cr-board");
-    if (!board) return;
-    board.innerHTML = boardHTML(visible());
+    const pool = document.getElementById("cr-pool");
+    const poolCount = document.getElementById("cr-pool-count");
+    const v = visible();
+    if (board) board.innerHTML = boardHTML(v);
+    if (pool) pool.innerHTML = poolHTML(v);
+    if (poolCount) {
+      const n = v.filter((x) => x.tier === POOL_TIER).length;
+      poolCount.textContent = n ? `${n} unranked` : "";
+    }
   }
 
   function exportFilterLabel() {
@@ -140,6 +181,7 @@
       );
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
 
+      const v = visible();
       const sheet = document.createElement("div");
       sheet.className = "cr-export-sheet";
       const dateLabel = new Date().toLocaleDateString(undefined, {
@@ -152,7 +194,11 @@
           <p class="cr-export-sub">Uncapped Node War &amp; Siege · ${esc(dateLabel)}</p>
           <p class="cr-export-sub cr-export-filters">${esc(exportFilterLabel())}</p>
         </div>
-        <div class="cr-board cr-board--export">${boardHTML(visible())}</div>`;
+        <section class="cr-pool-section cr-pool-section--export">
+          <h3 class="cr-pool-title">All classes</h3>
+          <div class="cr-pool cr-pool--export">${poolHTML(v)}</div>
+        </section>
+        <div class="cr-board cr-board--export">${boardHTML(v)}</div>`;
       document.body.appendChild(sheet);
 
       const canvas = await window.html2canvas(sheet, {
@@ -218,7 +264,7 @@
       id: "custom-" + Date.now(),
       class: "New Class",
       spec: "Succession",
-      tier: "D",
+      tier: POOL_TIER,
       difficulty: 0,
       mode: "both",
       image: "",
@@ -236,7 +282,7 @@
     editing.spec = document.getElementById("cr-fs").value;
     editing.image = document.getElementById("cr-fi").value.trim();
     editing.mode = document.getElementById("cr-fm").value;
-    editing.difficulty = Math.max(0, Math.min(10, +document.getElementById("cr-fd").value || 0));
+    editing.difficulty = Math.max(0, Math.min(MAX_STARS, +document.getElementById("cr-fd").value || 0));
     editing.roles = document
       .getElementById("cr-fr")
       .value.split(",")
@@ -261,6 +307,14 @@
     renderBoard();
   }
 
+  function dropOnTier(id, tier) {
+    const item = items.find((x) => x.id === id);
+    if (!item) return;
+    item.tier = tier;
+    save();
+    renderBoard();
+  }
+
   function exportData() {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(
@@ -275,7 +329,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        items = JSON.parse(reader.result);
+        items = migrateItems(JSON.parse(reader.result));
         save();
         renderBoard();
       } catch {
@@ -341,20 +395,14 @@
     });
 
     panelEl.addEventListener("dragover", (e) => {
-      if (e.target.closest(".cr-tier")) e.preventDefault();
+      if (e.target.closest(".cr-tier, .cr-pool")) e.preventDefault();
     });
 
     panelEl.addEventListener("drop", (e) => {
-      const tierEl = e.target.closest(".cr-tier");
+      const tierEl = e.target.closest(".cr-tier, .cr-pool");
       if (!tierEl) return;
       e.preventDefault();
-      const id = e.dataTransfer.getData("text/plain");
-      const item = items.find((x) => x.id === id);
-      if (item) {
-        item.tier = tierEl.getAttribute("data-tier");
-        save();
-        renderBoard();
-      }
+      dropOnTier(e.dataTransfer.getData("text/plain"), tierEl.getAttribute("data-tier"));
     });
 
     panelEl.addEventListener(

@@ -1654,8 +1654,58 @@ tfoot td.str {
   gap: 0.65rem;
 }
 
+.cr-pool-section {
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.cr-pool-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.cr-pool-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent-bright);
+}
+
+.cr-pool-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cr-pool-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cr-pool {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-height: 118px;
+  padding-bottom: 0.35rem;
+  scrollbar-width: thin;
+}
+
+.cr-pool .cr-card {
+  flex: 0 0 150px;
+  margin-bottom: 0;
+}
+
 .cr-tier {
-  min-height: 330px;
+  min-height: 220px;
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
@@ -1684,8 +1734,11 @@ tfoot td.str {
 .cr-tier.trash .cr-tierhead { background: #704080; }
 
 .cr-drop {
-  min-height: 280px;
+  min-height: 170px;
+  max-height: 360px;
+  overflow-y: auto;
   padding: 0.5rem;
+  scrollbar-width: thin;
 }
 
 .cr-empty {
@@ -1710,6 +1763,35 @@ tfoot td.str {
 
 .cr-card:active {
   cursor: grabbing;
+}
+
+.cr-card--compact {
+  grid-template-columns: 42px 1fr;
+  gap: 0.45rem;
+  padding: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.cr-card--compact .cr-thumb {
+  width: 42px;
+  height: 42px;
+}
+
+.cr-card--compact .cr-name {
+  font-size: 0.78rem;
+}
+
+.cr-card--compact .cr-spec {
+  font-size: 0.58rem;
+}
+
+.cr-card--compact .cr-stars {
+  font-size: 0.72rem;
+}
+
+.cr-empty--pool {
+  padding: 1rem 0.5rem;
+  white-space: nowrap;
 }
 
 .cr-thumb {
