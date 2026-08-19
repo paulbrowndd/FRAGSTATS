@@ -60,9 +60,9 @@
   }
 
   function specsForClass(className) {
-    const specs = ["Succession", "Awakening"];
-    if (ASCENSION_CLASSES.has(String(className || "").trim())) specs.push("Ascension");
-    return specs;
+    const cls = String(className || "").trim();
+    if (ASCENSION_CLASSES.has(cls)) return ["Ascension"];
+    return ["Succession", "Awakening"];
   }
 
   function isValidSpecEntry(item) {
