@@ -27,4 +27,5 @@ window.SIEGE_FORT_WINS = {
     "Mayhem",
   ],
   "2026-08-16": ["Arsha", "Kama", "Elite", "Envy", "Conflict"],
+  "2026-08-17": ["FRAG", "Omen", "Elite", "Desac", "Mayhem"],
 };
