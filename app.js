@@ -724,19 +724,44 @@
     return typeof label === "string" && label.trim() ? label.trim() : "Elite Alliance";
   }
 
+  function getSiegeNeutralGuilds() {
+    const list = window.SIEGE_NEUTRAL_GUILDS;
+    return Array.isArray(list)
+      ? list.map(normalizeSiegeGuildName).filter(Boolean)
+      : [];
+  }
+
+  function getSiegeNeutralAllianceLabel() {
+    const label = window.SIEGE_NEUTRAL_ALLIANCE_LABEL;
+    return typeof label === "string" && label.trim() ? label.trim() : "Neutral";
+  }
+
   function isSiegeOurAllianceGuild(name) {
     const key = normalizeSiegeGuildName(name).toLowerCase();
     return getSiegeOurAllianceGuilds().some((g) => g.toLowerCase() === key);
   }
 
+  function isSiegeNeutralGuild(name) {
+    const key = normalizeSiegeGuildName(name).toLowerCase();
+    return getSiegeNeutralGuilds().some((g) => g.toLowerCase() === key);
+  }
+
   function splitTicketsByAlliance(tickets) {
     const ours = [];
     const elite = [];
+    const neutral = [];
     for (const t of tickets) {
       if (isSiegeOurAllianceGuild(t.name)) ours.push(t);
+      else if (isSiegeNeutralGuild(t.name)) neutral.push(t);
       else elite.push(t);
     }
-    return { ours, elite };
+    return { ours, elite, neutral };
+  }
+
+  function siegeWinnerAllianceClass(g) {
+    if (isSiegeOurAllianceGuild(g)) return " siege-winner--ours";
+    if (isSiegeNeutralGuild(g)) return " siege-winner--neutral";
+    return " siege-winner--elite";
   }
 
   function renderSiegeTicketItem(t) {
@@ -774,7 +799,7 @@
       : isRepeat
         ? ' <em class="siege-winner-note">already had ticket</em>'
         : "";
-    const allianceMark = isSiegeOurAllianceGuild(g) ? " siege-winner--ours" : " siege-winner--elite";
+    const allianceMark = siegeWinnerAllianceClass(g);
     return `<span class="${cls}${allianceMark}">${escapeHtml(g)}${note}</span>`;
   }
 
@@ -1805,9 +1830,10 @@
     if (weekSelect.value !== sun) weekSelect.value = sun;
 
     const { tickets, dailyLog, ticketCount } = computeWeekSiegeTickets(sun);
-    const { ours, elite } = splitTicketsByAlliance(tickets);
+    const { ours, elite, neutral } = splitTicketsByAlliance(tickets);
     const ourLabel = "Our Alliance";
     const eliteLabel = getSiegeEliteAllianceLabel();
+    const neutralLabel = getSiegeNeutralAllianceLabel();
     const weekLabel = formatWeekRangeLabel(sun);
     metaEl.textContent = `Weekly siege tickets · Sun–Sat ${weekLabel}`;
 
@@ -1816,6 +1842,7 @@
         ? `<div class="siege-alliance-grid">
             ${renderAllianceTicketBlock(ourLabel, ours, "siege-alliance--ours")}
             ${renderAllianceTicketBlock(eliteLabel, elite, "siege-alliance--elite")}
+            ${renderAllianceTicketBlock(neutralLabel, neutral, "siege-alliance--neutral")}
           </div>`
         : `<p class="siege-empty">No siege tickets yet this week. Report fort winners to add them.</p>`;
 
@@ -1823,20 +1850,24 @@
       ? `<ol class="siege-daily-log">${dailyLog
           .map((day) => {
             const ourWinners = day.winners.filter((g) => isSiegeOurAllianceGuild(g));
-            const eliteWinners = day.winners.filter((g) => !isSiegeOurAllianceGuild(g));
+            const neutralWinners = day.winners.filter((g) => isSiegeNeutralGuild(g));
+            const eliteWinners = day.winners.filter(
+              (g) => !isSiegeOurAllianceGuild(g) && !isSiegeNeutralGuild(g)
+            );
             return `<li class="siege-day">
               <span class="siege-day-date">${escapeHtml(formatShortDate(day.date))}</span>
               ${renderSiegeDayAllianceGroup(ourLabel, ourWinners, day)}
               ${renderSiegeDayAllianceGroup(eliteLabel, eliteWinners, day)}
+              ${renderSiegeDayAllianceGroup(neutralLabel, neutralWinners, day)}
             </li>`;
           })
           .join("")}</ol>`
-      : `<p class="siege-empty siege-empty--sub">No fort wins logged for this week.</p>`;
+        : `<p class="siege-empty siege-empty--sub">No fort wins logged for this week.</p>`;
 
     siegeTicketsPanel.innerHTML = `
       <div class="siege-head">
         <h2 class="siege-title">Siege tickets this week</h2>
-        <p class="siege-sub">${escapeHtml(String(ticketCount))} guild${ticketCount === 1 ? "" : "s"} with a ticket · ${escapeHtml(String(ours.length))} Our Alliance · ${escapeHtml(String(elite.length))} ${escapeHtml(eliteLabel)} · first fort win only counts once per week</p>
+        <p class="siege-sub">${escapeHtml(String(ticketCount))} guild${ticketCount === 1 ? "" : "s"} with a ticket · ${escapeHtml(String(ours.length))} Our Alliance · ${escapeHtml(String(elite.length))} ${escapeHtml(eliteLabel)}${neutral.length ? ` · ${escapeHtml(String(neutral.length))} ${escapeHtml(neutralLabel)}` : ""} · first fort win only counts once per week</p>
       </div>
       <section class="siege-block" aria-label="Ticket holders">
         <h3 class="siege-block-title">Ticket holders</h3>
@@ -1849,7 +1880,7 @@
     `;
 
     countEl.textContent = ticketCount
-      ? `${ours.length} ours · ${elite.length} elite`
+      ? `${ours.length} ours · ${elite.length} elite${neutral.length ? ` · ${neutral.length} neutral` : ""}`
       : "";
   }
 
