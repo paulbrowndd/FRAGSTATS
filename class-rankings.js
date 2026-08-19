@@ -15,6 +15,14 @@
     "Tower Grind Spots",
   ];
   const TOOL_CREATED_BY = "X";
+  const ASCENSION_CLASSES = new Set([
+    "Archer",
+    "Scholar",
+    "Shai",
+    "Deadeye",
+    "Seraph",
+    "Wukong",
+  ]);
   const TIERS = [
     ["S+", "splus"],
     ["S", "s"],
@@ -51,15 +59,27 @@
     if (el) el.innerHTML = creditHTML();
   }
 
+  function specsForClass(className) {
+    const specs = ["Succession", "Awakening"];
+    if (ASCENSION_CLASSES.has(String(className || "").trim())) specs.push("Ascension");
+    return specs;
+  }
+
+  function isValidSpecEntry(item) {
+    return specsForClass(item.class).includes(item.spec);
+  }
+
   function migrateItems(list) {
     if (!Array.isArray(list)) return seedData().slice();
     const onlyLegacyD = list.length > 0 && list.every((x) => x.tier === "D");
-    return list.map((item) => ({
-      ...item,
-      difficulty: Math.min(MAX_STARS, Math.max(0, Number(item.difficulty) || 0)),
-      tier: onlyLegacyD ? POOL_TIER : item.tier || POOL_TIER,
-      mode: normalizeMode(item.mode),
-    }));
+    return list
+      .filter(isValidSpecEntry)
+      .map((item) => ({
+        ...item,
+        difficulty: Math.min(MAX_STARS, Math.max(0, Number(item.difficulty) || 0)),
+        tier: onlyLegacyD ? POOL_TIER : item.tier || POOL_TIER,
+        mode: normalizeMode(item.mode),
+      }));
   }
 
   function loadItems() {
@@ -255,10 +275,20 @@
     }
   }
 
+  function populateSpecSelect(className, selectedSpec) {
+    const select = document.getElementById("cr-fs");
+    if (!select) return;
+    const specs = specsForClass(className);
+    const selected =
+      selectedSpec && specs.includes(selectedSpec) ? selectedSpec : specs[0];
+    select.innerHTML = specs.map((s) => `<option>${esc(s)}</option>`).join("");
+    select.value = selected;
+  }
+
   function fillModal() {
     if (!editing) return;
     document.getElementById("cr-fc").value = editing.class;
-    document.getElementById("cr-fs").value = editing.spec;
+    populateSpecSelect(editing.class, editing.spec);
     document.getElementById("cr-fi").value = editing.image || "";
     document.getElementById("cr-fm").value = editing.mode || "both";
     document.getElementById("cr-fd").value = editing.difficulty || 0;
@@ -376,6 +406,10 @@
     mounted = true;
 
     panelEl.addEventListener("input", (e) => {
+      if (e.target.id === "cr-fc") {
+        populateSpecSelect(e.target.value, document.getElementById("cr-fs")?.value);
+        return;
+      }
       if (e.target.matches("#cr-search, #cr-mode, #cr-spec-filter")) renderBoard();
     });
 
