@@ -2029,6 +2029,32 @@ tfoot td.str {
   gap: 0.65rem;
 }
 
+.cr-export-sheet .cr-pool-section--export {
+  margin-bottom: 1rem;
+}
+
+.cr-export-sheet .cr-pool--export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.cr-export-sheet .cr-pool--export .cr-card {
+  flex: 0 0 150px;
+}
+
+.cr-export-sheet .cr-tier {
+  min-height: auto;
+}
+
+.cr-export-sheet .cr-drop {
+  min-height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
 .cr-controls button:disabled {
   opacity: 0.65;
   cursor: wait;

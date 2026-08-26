@@ -253,17 +253,50 @@
         backgroundColor: "#07090d",
         useCORS: true,
         logging: false,
+        width: sheet.scrollWidth,
+        height: sheet.scrollHeight,
+        windowWidth: sheet.scrollWidth,
+        windowHeight: sheet.scrollHeight,
       });
       sheet.remove();
 
       const img = canvas.toDataURL("image/png");
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
-        orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
-        unit: "px",
-        format: [canvas.width, canvas.height],
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
       });
-      pdf.addImage(img, "PNG", 0, 0, canvas.width, canvas.height);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 6;
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let y = margin;
+
+      pdf.addImage(img, "PNG", margin, y, imgWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
+
+      while (heightLeft > 0) {
+        y = margin - (imgHeight - heightLeft);
+        pdf.addPage();
+        pdf.addImage(img, "PNG", margin, y, imgWidth, imgHeight);
+        heightLeft -= pageHeight - margin * 2;
+      }
+
+      const totalPages = pdf.getNumberOfPages();
+      for (let page = 1; page <= totalPages; page++) {
+        pdf.setPage(page);
+        pdf.setFontSize(8);
+        pdf.setTextColor(140, 154, 170);
+        pdf.text(
+          `FRAG Class Rankings · ${dateLabel} · Page ${page} of ${totalPages}`,
+          margin,
+          pageHeight - 2
+        );
+      }
+
       pdf.save(`FRAG-class-rankings-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch {
       alert("Could not generate PDF. Check your connection and try again.");
