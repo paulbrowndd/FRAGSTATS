@@ -260,6 +260,7 @@ window.GUILD_NAME_ALIASES = {
   "Polrn": "Polin",
   "Psychovsky": "Psychovasky",
   "Psychovsky_": "Psychovasky",
+  "Rajinjack": "Rajjnjack",
   "renegade": "Renegade69",
   "Rosuno": "TheRossSauce",
   "Shottazz": "ShottaZz",

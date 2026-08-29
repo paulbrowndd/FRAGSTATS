@@ -70990,7 +70990,7 @@ window.NODE_WAR_DATA = {
                 "timeSurvived": "52:02"
           },
           {
-                "familyName": "Rajinjack",
+                "familyName": "Rajjnjack",
                 "enemyKills": 2,
                 "deaths": 11,
                 "maxKillStreak": 1,
