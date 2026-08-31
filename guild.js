@@ -227,6 +227,7 @@ window.GUILD_NAME_ALIASES = {
   "Gaterkiller": "Deroxide",
   "Grelth": "Afary",
   "Hendol1114": "Hendo1114",
+  "Hendol114": "Hendo1114",
   "Hypnotica": "Eight76",
   "ISlicel": "XSliceX",
   "Iarwen": "Iarsen",
