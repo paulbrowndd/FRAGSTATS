@@ -37,12 +37,6 @@
     return s;
   }
 
-  function esc(x) {
-    return String(x ?? "").replace(/[&<>"']/g, (m) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]
-    );
-  }
-
   function loadSaved() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -53,12 +47,11 @@
 
   function loadData() {
     const saved = loadSaved();
-    data = Array.from({ length: TOTAL }, (_, i) =>
-      Object.assign(
-        { id: i + 1, done: false, region: "", directions: "" },
-        saved[i + 1] || {}
-      )
-    );
+    data = Array.from({ length: TOTAL }, (_, i) => {
+      const id = i + 1;
+      const entry = saved[id] || {};
+      return { id, done: Boolean(entry.done) };
+    });
   }
 
   function persist() {
@@ -69,21 +62,11 @@
   }
 
   function cardHTML(x) {
+    const label = `Tachyon Trace ${roman(x.id)}`;
     return `<article class="ect-card ${x.done ? "ect-card--done" : ""}" data-id="${x.id}">
       <div class="ect-card-top">
-        <input class="ect-check" type="checkbox" ${x.done ? "checked" : ""} aria-label="Mark ${roman(x.id)} as collected">
-        <div>
-          <div class="ect-trace">Tachyon Trace ${roman(x.id)}</div>
-          <div class="ect-num">Chest ${x.id} of ${TOTAL}</div>
-        </div>
-      </div>
-      <div class="ect-field">
-        <label>Region / Map area</label>
-        <div class="ect-editable" contenteditable data-field="region" data-placeholder="Add region…">${esc(x.region)}</div>
-      </div>
-      <div class="ect-field">
-        <label>Directions / Notes</label>
-        <div class="ect-editable" contenteditable data-field="directions" data-placeholder="Add route, combat note, etc.…">${esc(x.directions)}</div>
+        <input class="ect-check" type="checkbox" ${x.done ? "checked" : ""} aria-label="Mark ${label} as collected">
+        <div class="ect-trace">${label}</div>
       </div>
     </article>`;
   }
@@ -117,7 +100,7 @@
     if (!cards) return;
 
     const list = data.filter((x) => {
-      const t = `${x.id} ${roman(x.id)} ${x.region} ${x.directions}`.toLowerCase();
+      const t = `${x.id} tachyon trace ${roman(x.id)}`.toLowerCase();
       const state =
         filter === "all" || (filter === "done" ? x.done : !x.done);
       return state && t.includes(query);
@@ -142,16 +125,6 @@
       item.done = e.target.checked;
       persist();
       render();
-    });
-
-    panelEl.addEventListener("input", (e) => {
-      if (!e.target.matches(".ect-editable")) return;
-      const card = e.target.closest(".ect-card");
-      const item = data.find((x) => x.id === Number(card?.dataset.id));
-      if (!item) return;
-      const field = e.target.getAttribute("data-field");
-      item[field] = e.target.textContent.trim();
-      persist();
     });
 
     panelEl.addEventListener("input", (e) => {
@@ -189,9 +162,7 @@
       }
 
       if (e.target.closest("#ect-reset")) {
-        if (
-          confirm("Clear all Edania II chest progress and notes on this device?")
-        ) {
+        if (confirm("Clear all Edania II chest progress on this device?")) {
           localStorage.removeItem(STORAGE_KEY);
           loadData();
           filter = "all";

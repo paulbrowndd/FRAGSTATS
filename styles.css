@@ -2220,16 +2220,16 @@ tfoot td.str {
 
 .ect-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
 }
 
 .ect-card {
   position: relative;
   background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.85rem;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
   transition: 0.15s;
 }
 
@@ -2249,8 +2249,8 @@ tfoot td.str {
 
 .ect-card-top {
   display: flex;
-  gap: 0.65rem;
-  align-items: start;
+  gap: 0.6rem;
+  align-items: center;
 }
 
 .ect-check {
@@ -2281,50 +2281,10 @@ tfoot td.str {
 }
 
 .ect-trace {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-}
-
-.ect-num {
-  font-size: 0.68rem;
-  color: var(--accent-bright);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: 0.1rem;
-}
-
-.ect-field {
-  margin-top: 0.7rem;
-}
-
-.ect-field label {
-  display: block;
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 0.2rem;
-}
-
-.ect-editable {
-  min-height: 20px;
-  border-radius: 5px;
-  padding: 2px 4px;
-  outline: none;
-  font-size: 0.88rem;
-  word-break: break-word;
-}
-
-.ect-editable:focus {
-  background: rgba(0, 0, 0, 0.25);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-.ect-editable:empty::before {
-  content: attr(data-placeholder);
-  color: #657184;
+  line-height: 1.2;
 }
 
 .ect-empty {
