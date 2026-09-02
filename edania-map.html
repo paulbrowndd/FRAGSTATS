@@ -226,14 +226,23 @@
   <div id="lb-credit">이미지 출처 : 검은사막 인벤 - 카나트 님</div>
 </div>
 
-<script src="https://www.korbdo.co.kr/Edania2/data/tiles.js?v=1786596824" type="d8c15334cfa91c00a748409d-text/javascript"></script>
-<script src="https://www.korbdo.co.kr/Edania2/data/markers.js?v=1787791907" type="d8c15334cfa91c00a748409d-text/javascript"></script>
-<script src="https://www.korbdo.co.kr/Edania2/data/images.js?v=1787724096" type="d8c15334cfa91c00a748409d-text/javascript"></script>
-<script src="https://www.korbdo.co.kr/Edania2/data/videos.js?v=1787724561" type="d8c15334cfa91c00a748409d-text/javascript"></script>
-<script type="d8c15334cfa91c00a748409d-text/javascript">
+<script src="https://www.korbdo.co.kr/Edania2/data/tiles.js?v=1786596824"></script>
+<script src="https://www.korbdo.co.kr/Edania2/data/markers.js?v=1787791907"></script>
+<script src="https://www.korbdo.co.kr/Edania2/data/images.js?v=1787724096"></script>
+<script src="https://www.korbdo.co.kr/Edania2/data/videos.js?v=1787724561"></script>
+<script>
 // index.html 과 같은 데이터/타일을 쓰되 에다니아 영역 밖으로 못 나가게 잠근 버전.
 // + 검색 / 습득 완료 체크(localStorage).
-const M = window.MARKERS, TILES = window.TILES || {};
+const M = window.MARKERS;
+if (!M || !M.meta || !M.points) {
+  document.body.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100vh;padding:24px;text-align:center;color:#e6edf3;font:14px/1.5 system-ui,sans-serif">' +
+    '<div><p style="margin:0 0 12px">Map data failed to load.</p>' +
+    '<p style="margin:0;color:#8b949e">Try refreshing, or use the ' +
+    '<a href="https://www.korbdo.co.kr/#tachyon" target="_blank" rel="noopener" style="color:#5fd0e0">korbdo map</a> directly.</p></div></div>';
+  throw new Error('MARKERS failed to load');
+}
+const TILES = window.TILES || {};
 // 마을 NPC 레이어는 당분간 숨김(데이터는 markers.js 에 그대로 있음 — 이 줄만 지우면 복구).
 if (M.points) delete M.points.npc;
 // 신규 추가됐지만 아직 업데이트(이미지) 안 된 흔적은 숨긴다.
