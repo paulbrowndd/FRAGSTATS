@@ -3,6 +3,8 @@
  */
 (function () {
   const STORAGE_KEY = "frag-edania-ii-chests-v1";
+  const MAP_STORE = "bdo_tachyon_done";
+  const TRACE_PREFIX = "흔적-";
   const TOTAL = 89;
 
   let panelEl = null;
@@ -52,6 +54,63 @@
       const entry = saved[id] || {};
       return { id, done: Boolean(entry.done) };
     });
+    mergeMapTracesOnLoad();
+  }
+
+  function mergeMapTracesOnLoad() {
+    try {
+      const done = JSON.parse(localStorage.getItem(MAP_STORE) || "[]");
+      let changed = false;
+      for (const key of done) {
+        const text = String(key);
+        if (!text.startsWith(TRACE_PREFIX)) continue;
+        const num = Number(text.slice(TRACE_PREFIX.length));
+        if (!Number.isFinite(num) || num < 1 || num > TOTAL) continue;
+        const item = data.find((x) => x.id === num);
+        if (item && !item.done) {
+          item.done = true;
+          changed = true;
+        }
+      }
+      if (changed) persist();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function syncMapTrace(num, done) {
+    try {
+      const doneList = JSON.parse(localStorage.getItem(MAP_STORE) || "[]");
+      const key = `${TRACE_PREFIX}${num}`;
+      const set = new Set(doneList);
+      if (done) set.add(key);
+      else set.delete(key);
+      localStorage.setItem(MAP_STORE, JSON.stringify([...set]));
+    } catch {
+      /* ignore */
+    }
+    const frame = panelEl?.querySelector("#ect-map-frame");
+    frame?.contentWindow?.postMessage({ type: "frag-trace-set", num, done: !!done }, "*");
+  }
+
+  function clearMapTraceDone() {
+    try {
+      const done = JSON.parse(localStorage.getItem(MAP_STORE) || "[]");
+      const filtered = done.filter((key) => !String(key).startsWith(TRACE_PREFIX));
+      localStorage.setItem(MAP_STORE, JSON.stringify(filtered));
+      const frame = panelEl?.querySelector("#ect-map-frame");
+      frame?.contentWindow?.postMessage({ type: "frag-trace-reset" }, "*");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function applyTraceDone(num, done) {
+    const item = data.find((x) => x.id === num);
+    if (!item || item.done === done) return;
+    item.done = done;
+    persist();
+    render();
   }
 
   function persist() {
@@ -124,6 +183,7 @@
       if (!item) return;
       item.done = e.target.checked;
       persist();
+      syncMapTrace(item.id, item.done);
       render();
     });
 
@@ -164,6 +224,7 @@
       if (e.target.closest("#ect-reset")) {
         if (confirm("Clear all Edania II chest progress on this device?")) {
           localStorage.removeItem(STORAGE_KEY);
+          clearMapTraceDone();
           loadData();
           filter = "all";
           query = "";
@@ -194,6 +255,21 @@
       panelEl = el;
       loadData();
       bindEvents();
+      window.addEventListener("message", (e) => {
+        const msg = e.data;
+        if (!msg || typeof msg !== "object") return;
+        if (msg.type === "frag-trace-done") {
+          const num = Number(msg.num);
+          if (!Number.isFinite(num)) return;
+          applyTraceDone(num, !!msg.done);
+        } else if (msg.type === "frag-trace-reset") {
+          data.forEach((item) => {
+            item.done = false;
+          });
+          persist();
+          render();
+        }
+      });
     },
     render() {
       render();

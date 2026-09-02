@@ -346,7 +346,80 @@ try {
     }
   }
 } catch (e) {}
+const FRAG_STORE = 'frag-edania-ii-chests-v1';
+const TRACE_KIND = '흔적';
 const saveDone = () => { try { localStorage.setItem(STORE, JSON.stringify([...DONE])); } catch (e) {} };
+
+function syncFragTrace(num, done) {
+  if (num < 1 || num > 89) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(FRAG_STORE) || '{}');
+    saved[num] = Object.assign({}, saved[num], { id: num, done: !!done });
+    localStorage.setItem(FRAG_STORE, JSON.stringify(saved));
+    parent.postMessage({ type: 'frag-trace-done', num, done: !!done }, '*');
+  } catch (e) {}
+}
+
+function mergeFragIntoDone() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FRAG_STORE) || '{}');
+    let changed = false;
+    for (let id = 1; id <= 89; id++) {
+      const key = `${TRACE_KIND}-${id}`;
+      if (saved[id]?.done && !DONE.has(key)) {
+        DONE.add(key);
+        changed = true;
+      }
+    }
+    if (changed) saveDone();
+  } catch (e) {}
+}
+
+function syncTraceDone(p) {
+  if (!p || p.kind !== TRACE_KIND || !p.num) return;
+  syncFragTrace(p.num, DONE.has(keyOf(p)));
+}
+
+function clearFragTraces() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FRAG_STORE) || '{}');
+    for (let id = 1; id <= 89; id++) {
+      if (saved[id]) saved[id] = Object.assign({}, saved[id], { id, done: false });
+    }
+    localStorage.setItem(FRAG_STORE, JSON.stringify(saved));
+    parent.postMessage({ type: 'frag-trace-reset' }, '*');
+  } catch (e) {}
+}
+
+mergeFragIntoDone();
+
+window.addEventListener('message', (e) => {
+  const msg = e.data;
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.type === 'frag-trace-set') {
+    const num = Number(msg.num);
+    if (!Number.isFinite(num) || num < 1 || num > 89) return;
+    const key = `${TRACE_KIND}-${num}`;
+    if (msg.done) DONE.add(key);
+    else DONE.delete(key);
+    saveDone();
+    progress();
+    if (sel?.p?.kind === TRACE_KIND && sel.p.num === num) select(sel.p, sel.id);
+    search();
+    draw();
+    return;
+  }
+  if (msg.type === 'frag-trace-reset') {
+    for (const key of [...DONE]) {
+      if (String(key).startsWith(`${TRACE_KIND}-`)) DONE.delete(key);
+    }
+    saveDone();
+    progress();
+    search();
+    draw();
+  }
+});
+
 const isDone = p => p.kind && (p.quests ? questAll(p) : DONE.has(keyOf(p)));
 // ── 금주화 퀘스트: 하위 퀘스트별 개별 완료 (키: '퀘스트-<좌표>#<번호>')
 const qKey = (p, i) => `${keyOf(p)}#${i}`;
@@ -645,7 +718,12 @@ document.getElementById('sel-done').onclick = () => {
   }
   const k = keyOf(sel.p);
   DONE.has(k) ? DONE.delete(k) : DONE.add(k);
-  saveDone(); select(sel.p, sel.id); progress(); search();
+  saveDone();
+  syncTraceDone(sel.p);
+  select(sel.p, sel.id);
+  progress();
+  search();
+  draw();
 };
 // 마커 선택 상태에서 스페이스바/엔터 → 완료 토글 (검색 입력 중·이미지 열림 중 제외)
 addEventListener('keydown', e => {
@@ -951,12 +1029,14 @@ document.getElementById('btn-reset').onclick = () => {
   if (DONE.size) {                                   // 하나라도 완료됨 → 전체 초기화
     if (!confirm(T('confirmReset').replace('{n}', DONE.size))) return;
     DONE.clear();
+    clearFragTraces();
   } else {                                           // 아무것도 없음 → 전체 완료
     if (!confirm(T('confirmDone'))) return;
     DONE = new Set(DONEABLE.filter(p => p.kind).map(keyOf));
     // 금주화 퀘스트도 함께 완료 처리(하위 퀘스트 단위로 저장)
     for (const p of (M.points.quest || []))
       (p.quests || []).forEach((_, i) => DONE.add(qKey(p, i)));
+    for (const p of (M.points.trace || [])) syncFragTrace(p.num, DONE.has(keyOf(p)));
   }
   saveDone(); progress(); search(); draw();
 };
