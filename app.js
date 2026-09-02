@@ -34,6 +34,7 @@
     ATTENDANCE: "attendance",
     SIEGE_TICKETS: "siege-tickets",
     CLASS_RANKINGS: "class-rankings",
+    EDANIA_CHESTS: "edania-chests",
   };
 
   const ATTENDANCE_COLS = [
@@ -73,6 +74,7 @@
   const warAnalysisPriorMvps = document.getElementById("war-analysis-prior-mvps");
   const siegeTicketsPanel = document.getElementById("siege-tickets-panel");
   const classRankingsPanel = document.getElementById("class-rankings-panel");
+  const edaniaChestsPanel = document.getElementById("edania-chests-panel");
   const statsTablePanel = document.getElementById("stats-table-panel");
   const toolbarPanel = document.getElementById("toolbar-panel");
 
@@ -1790,11 +1792,15 @@
   }
 
   function setMainViewChrome(view) {
-    const standalone = view === VIEW.SIEGE_TICKETS || view === VIEW.CLASS_RANKINGS;
+    const standalone =
+      view === VIEW.SIEGE_TICKETS ||
+      view === VIEW.CLASS_RANKINGS ||
+      view === VIEW.EDANIA_CHESTS;
     if (statsTablePanel) statsTablePanel.hidden = standalone;
     if (toolbarPanel) toolbarPanel.hidden = standalone;
     if (siegeTicketsPanel) siegeTicketsPanel.hidden = view !== VIEW.SIEGE_TICKETS;
     if (classRankingsPanel) classRankingsPanel.hidden = view !== VIEW.CLASS_RANKINGS;
+    if (edaniaChestsPanel) edaniaChestsPanel.hidden = view !== VIEW.EDANIA_CHESTS;
   }
 
   function renderClassRankingsTabBody() {
@@ -1803,6 +1809,14 @@
     metaEl.textContent = "FRAG Class Rankings · Multi-mode tier list";
     countEl.textContent = "";
     if (window.FRAGClassRankings) window.FRAGClassRankings.render();
+  }
+
+  function renderEdaniaChestsTabBody() {
+    hideStatsPanels();
+    setMainViewChrome(VIEW.EDANIA_CHESTS);
+    metaEl.textContent = "Edania II Agris chest tracker · 89 Tachyon Traces";
+    countEl.textContent = "";
+    if (window.FRAGEdaniaChests) window.FRAGEdaniaChests.render();
   }
 
   function renderSiegeTicketsTabBody() {
@@ -2172,6 +2186,11 @@
       return;
     }
 
+    if (currentView === VIEW.EDANIA_CHESTS) {
+      renderEdaniaChestsTabBody();
+      return;
+    }
+
     setMainViewChrome(currentView);
 
     if (currentView === VIEW.ATTENDANCE) {
@@ -2332,12 +2351,13 @@
     const attendance = currentView === VIEW.ATTENDANCE;
     const lifetime = currentView === VIEW.LIFETIME;
     const classRankings = currentView === VIEW.CLASS_RANKINGS;
+    const edaniaChests = currentView === VIEW.EDANIA_CHESTS;
 
     dateField.hidden = !daily;
     weekField.hidden = !weekly && !attendance;
     monthField.hidden = !monthly && !attendance;
     scopeRow.hidden =
-      lifetime || classRankings || (!daily && !weekly && !monthly && !attendance);
+      lifetime || classRankings || edaniaChests || (!daily && !weekly && !monthly && !attendance);
 
     weekField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "week");
     monthField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "month");
@@ -2474,6 +2494,10 @@
 
     if (classRankingsPanel && window.FRAGClassRankings) {
       window.FRAGClassRankings.mount(classRankingsPanel);
+    }
+
+    if (edaniaChestsPanel && window.FRAGEdaniaChests) {
+      window.FRAGEdaniaChests.mount(edaniaChestsPanel);
     }
   }
 

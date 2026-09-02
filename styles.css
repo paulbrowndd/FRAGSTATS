@@ -2059,3 +2059,318 @@ tfoot td.str {
   opacity: 0.65;
   cursor: wait;
 }
+
+/* Edania II Chest Tracker */
+.edania-chests-panel[hidden] {
+  display: none !important;
+}
+
+.edania-chests-panel {
+  padding: 1rem 1.1rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ect-head {
+  margin-bottom: 1rem;
+}
+
+.ect-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  letter-spacing: -0.03em;
+}
+
+.ect-title strong {
+  color: var(--accent-bright);
+}
+
+.ect-sub {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  max-width: 42rem;
+}
+
+.ect-dashboard {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.ect-panel {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.ect-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  font-weight: 700;
+}
+
+.ect-progress-label strong {
+  font-size: 1.6rem;
+  color: var(--accent-bright);
+  letter-spacing: -0.04em;
+}
+
+.ect-bar {
+  height: 12px;
+  margin-top: 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.ect-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #b87b27, var(--accent-bright));
+  transition: width 0.25s ease;
+}
+
+.ect-statgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.ect-stat {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.ect-stat b {
+  display: block;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.ect-stat small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.ect-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.85rem 0;
+}
+
+.ect-controls input {
+  min-width: 180px;
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+}
+
+.ect-controls input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.ect-btn {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.ect-btn:hover,
+.ect-filter--active {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: rgba(212, 160, 84, 0.12);
+}
+
+.ect-btn--gold {
+  border-color: #bd8a38;
+  color: #17130b;
+  background: var(--accent-bright);
+}
+
+.ect-btn--gold:hover {
+  color: #17130b;
+  background: #ffda89;
+}
+
+.ect-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0.85rem;
+}
+
+.ect-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.65rem;
+}
+
+.ect-card {
+  position: relative;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  transition: 0.15s;
+}
+
+.ect-card:hover {
+  transform: translateY(-1px);
+  border-color: #556273;
+}
+
+.ect-card--done {
+  border-color: rgba(83, 209, 154, 0.55);
+  background: linear-gradient(130deg, rgba(19, 37, 31, 0.9), rgba(0, 0, 0, 0.15));
+}
+
+.ect-card--next {
+  outline: 2px solid var(--accent-bright);
+}
+
+.ect-card-top {
+  display: flex;
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.ect-check {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  border: 1px solid #657184;
+  background: rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  margin: 1px 0 0;
+}
+
+.ect-check:checked {
+  background: #53d19a;
+  border-color: #53d19a;
+}
+
+.ect-check:checked::after {
+  content: "✓";
+  display: block;
+  color: #062016;
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 20px;
+}
+
+.ect-trace {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ect-num {
+  font-size: 0.68rem;
+  color: var(--accent-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.1rem;
+}
+
+.ect-field {
+  margin-top: 0.7rem;
+}
+
+.ect-field label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.ect-editable {
+  min-height: 20px;
+  border-radius: 5px;
+  padding: 2px 4px;
+  outline: none;
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.ect-editable:focus {
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.ect-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #657184;
+}
+
+.ect-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin-top: 0.65rem;
+}
+
+.ect-links a {
+  color: var(--accent-bright);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.ect-links a:hover {
+  text-decoration: underline;
+}
+
+.ect-links .ect-editable {
+  flex: 1;
+  min-width: 120px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.ect-empty {
+  color: var(--muted);
+  padding: 2rem;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  grid-column: 1 / -1;
+}
+
+.ect-foot {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 720px) {
+  .ect-dashboard {
+    grid-template-columns: 1fr;
+  }
+}

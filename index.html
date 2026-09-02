@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260826a" />
+    <link rel="stylesheet" href="styles.css?v=20260902a" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -50,6 +50,9 @@
           </button>
           <button type="button" class="tab" data-view="class-rankings" role="tab" aria-selected="false">
             FRAG Class Rankings
+          </button>
+          <button type="button" class="tab" data-view="edania-chests" role="tab" aria-selected="false">
+            Edania II Chests
           </button>
         </div>
 
@@ -185,6 +188,41 @@
         </div>
       </section>
 
+      <section id="edania-chests-panel" class="edania-chests-panel panel" hidden aria-label="Edania II chest tracker">
+        <div class="ect-head">
+          <h2 class="ect-title">Edania II <strong>Agris Chest Tracker</strong></h2>
+          <p class="ect-sub">Mark your Tachyon Traces as you collect them. Progress and notes stay saved on this device.</p>
+        </div>
+        <section class="ect-dashboard" aria-label="Collection progress">
+          <div class="ect-panel">
+            <div class="ect-progress-label">
+              <span>Collection Progress</span>
+              <strong id="ect-progress-text">0 / 89</strong>
+            </div>
+            <div class="ect-bar"><div class="ect-fill" id="ect-fill"></div></div>
+            <p class="ect-hint" id="ect-progress-hint">89 chests remaining</p>
+          </div>
+          <div class="ect-panel">
+            <div class="ect-statgrid">
+              <div class="ect-stat"><b id="ect-found">0</b><small>Found</small></div>
+              <div class="ect-stat"><b id="ect-missing">89</b><small>Missing</small></div>
+              <div class="ect-stat"><b id="ect-percent">0%</b><small>Complete</small></div>
+            </div>
+          </div>
+        </section>
+        <div class="ect-controls">
+          <input id="ect-search" type="search" placeholder="Search chest, region, or notes…" autocomplete="off" />
+          <button type="button" class="ect-btn ect-filter ect-filter--active" data-filter="all">All</button>
+          <button type="button" class="ect-btn ect-filter" data-filter="missing">Missing</button>
+          <button type="button" class="ect-btn ect-filter" data-filter="done">Completed</button>
+          <button type="button" class="ect-btn ect-btn--gold" id="ect-next">Find Next Chest</button>
+          <button type="button" class="ect-btn" id="ect-reset">Reset Progress</button>
+        </div>
+        <p class="ect-hint">Tip: tap any field to add the location, video timestamp, or route. Use the video-link field to paste a timestamped YouTube link.</p>
+        <section id="ect-cards" class="ect-cards" aria-label="Chest cards"></section>
+        <p class="ect-foot">FRAG · Edania II tracker · Data is stored only in this browser.</p>
+      </section>
+
       <div id="stats-table-panel" class="table-scroll panel panel--table" role="region" aria-label="Node war statistics table">
         <table>
           <thead>
@@ -201,6 +239,7 @@
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
     <script src="class-rankings.js?v=20260826a"></script>
-    <script src="app.js?v=20260818g"></script>
+    <script src="edania-chests.js?v=20260902a"></script>
+    <script src="app.js?v=20260902a"></script>
   </body>
 </html>
