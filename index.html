@@ -191,22 +191,31 @@
       <section id="edania-chests-panel" class="edania-chests-panel panel" hidden aria-label="Edania II chest tracker">
         <div class="ect-head">
           <h2 class="ect-title">Edania II <strong>Agris Chest Tracker</strong></h2>
-          <p class="ect-sub">Mark your Tachyon Traces as you collect them. Progress stays saved on this device.</p>
+          <p class="ect-sub">Mark your Tachyon Traces and Legacy chests as you collect them. Progress stays saved on this device.</p>
         </div>
         <section class="ect-dashboard" aria-label="Collection progress">
           <div class="ect-panel">
             <div class="ect-progress-label">
-              <span>Collection Progress</span>
-              <strong id="ect-progress-text">0 / 89</strong>
+              <span>Tachyon Traces</span>
+              <strong id="ect-trace-progress">0 / 89</strong>
             </div>
-            <div class="ect-bar"><div class="ect-fill" id="ect-fill"></div></div>
-            <p class="ect-hint" id="ect-progress-hint">89 chests remaining</p>
+            <div class="ect-bar"><div class="ect-fill ect-fill--trace" id="ect-trace-fill"></div></div>
+            <div class="ect-statgrid ect-statgrid--compact">
+              <div class="ect-stat"><b id="ect-trace-found">0</b><small>Found</small></div>
+              <div class="ect-stat"><b id="ect-trace-missing">89</b><small>Missing</small></div>
+              <div class="ect-stat"><b id="ect-trace-percent">0%</b><small>Complete</small></div>
+            </div>
           </div>
           <div class="ect-panel">
-            <div class="ect-statgrid">
-              <div class="ect-stat"><b id="ect-found">0</b><small>Found</small></div>
-              <div class="ect-stat"><b id="ect-missing">89</b><small>Missing</small></div>
-              <div class="ect-stat"><b id="ect-percent">0%</b><small>Complete</small></div>
+            <div class="ect-progress-label">
+              <span>Tachyon Legacy</span>
+              <strong id="ect-legacy-progress">0 / 84</strong>
+            </div>
+            <div class="ect-bar"><div class="ect-fill ect-fill--legacy" id="ect-legacy-fill"></div></div>
+            <div class="ect-statgrid ect-statgrid--compact">
+              <div class="ect-stat"><b id="ect-legacy-found">0</b><small>Found</small></div>
+              <div class="ect-stat"><b id="ect-legacy-missing">84</b><small>Missing</small></div>
+              <div class="ect-stat"><b id="ect-legacy-percent">0%</b><small>Complete</small></div>
             </div>
           </div>
         </section>
@@ -256,7 +265,7 @@
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
     <script src="class-rankings.js?v=20260826a"></script>
-    <script src="edania-chests.js?v=20260902i"></script>
+    <script src="edania-chests.js?v=20260902j"></script>
     <script src="app.js?v=20260902i"></script>
   </body>
 </html>

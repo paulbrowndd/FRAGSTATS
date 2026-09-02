@@ -357,16 +357,29 @@ try {
 } catch (e) {}
 const FRAG_STORE = 'frag-edania-ii-chests-v1';
 const TRACE_KIND = '흔적';
+const RELIC_KIND = '유산';
 const saveDone = () => { try { localStorage.setItem(STORE, JSON.stringify([...DONE])); } catch (e) {} };
 
-function syncFragTrace(num, done) {
+function syncFragChest(num, kind, field, msgType, done) {
   if (num < 1 || num > 89) return;
   try {
     const saved = JSON.parse(localStorage.getItem(FRAG_STORE) || '{}');
-    saved[num] = Object.assign({}, saved[num], { id: num, done: !!done });
+    const prev = saved[num] || { id: num };
+    saved[num] = Object.assign({}, prev, { id: num, [field]: !!done });
+    if (field === 'trace' && prev.done && !Object.prototype.hasOwnProperty.call(prev, 'trace')) {
+      saved[num].trace = !!done;
+    }
     localStorage.setItem(FRAG_STORE, JSON.stringify(saved));
-    parent.postMessage({ type: 'frag-trace-done', num, done: !!done }, '*');
+    parent.postMessage({ type: msgType, num, done: !!done }, '*');
   } catch (e) {}
+}
+
+function syncFragTrace(num, done) {
+  syncFragChest(num, TRACE_KIND, 'trace', 'frag-trace-done', done);
+}
+
+function syncFragRelic(num, done) {
+  syncFragChest(num, RELIC_KIND, 'legacy', 'frag-relic-done', done);
 }
 
 function mergeFragIntoDone() {
@@ -374,9 +387,18 @@ function mergeFragIntoDone() {
     const saved = JSON.parse(localStorage.getItem(FRAG_STORE) || '{}');
     let changed = false;
     for (let id = 1; id <= 89; id++) {
-      const key = `${TRACE_KIND}-${id}`;
-      if (saved[id]?.done && !DONE.has(key)) {
-        DONE.add(key);
+      const entry = saved[id];
+      if (!entry) continue;
+      const traceDone = !!(entry.trace ?? entry.done);
+      const relicDone = !!entry.legacy;
+      const traceKey = `${TRACE_KIND}-${id}`;
+      const relicKey = `${RELIC_KIND}-${id}`;
+      if (traceDone && !DONE.has(traceKey)) {
+        DONE.add(traceKey);
+        changed = true;
+      }
+      if (relicDone && !DONE.has(relicKey)) {
+        DONE.add(relicKey);
         changed = true;
       }
     }
@@ -389,14 +411,20 @@ function syncTraceDone(p) {
   syncFragTrace(p.num, DONE.has(keyOf(p)));
 }
 
-function clearFragTraces() {
+function syncRelicDone(p) {
+  if (!p || p.kind !== RELIC_KIND || !p.num) return;
+  syncFragRelic(p.num, DONE.has(keyOf(p)));
+}
+
+function clearFragChests() {
   try {
     const saved = JSON.parse(localStorage.getItem(FRAG_STORE) || '{}');
     for (let id = 1; id <= 89; id++) {
-      if (saved[id]) saved[id] = Object.assign({}, saved[id], { id, done: false });
+      if (saved[id]) saved[id] = Object.assign({}, saved[id], { id, trace: false, legacy: false, done: false });
     }
     localStorage.setItem(FRAG_STORE, JSON.stringify(saved));
     parent.postMessage({ type: 'frag-trace-reset' }, '*');
+    parent.postMessage({ type: 'frag-relic-reset' }, '*');
   } catch (e) {}
 }
 
@@ -418,9 +446,32 @@ window.addEventListener('message', (e) => {
     draw();
     return;
   }
+  if (msg.type === 'frag-relic-set') {
+    const num = Number(msg.num);
+    if (!Number.isFinite(num) || num < 1 || num > 89) return;
+    const key = `${RELIC_KIND}-${num}`;
+    if (msg.done) DONE.add(key);
+    else DONE.delete(key);
+    saveDone();
+    progress();
+    if (sel?.p?.kind === RELIC_KIND && sel.p.num === num) select(sel.p, sel.id);
+    search();
+    draw();
+    return;
+  }
   if (msg.type === 'frag-trace-reset') {
     for (const key of [...DONE]) {
       if (String(key).startsWith(`${TRACE_KIND}-`)) DONE.delete(key);
+    }
+    saveDone();
+    progress();
+    search();
+    draw();
+    return;
+  }
+  if (msg.type === 'frag-relic-reset') {
+    for (const key of [...DONE]) {
+      if (String(key).startsWith(`${RELIC_KIND}-`)) DONE.delete(key);
     }
     saveDone();
     progress();
@@ -733,6 +784,7 @@ document.getElementById('sel-done').onclick = () => {
   DONE.has(k) ? DONE.delete(k) : DONE.add(k);
   saveDone();
   syncTraceDone(sel.p);
+  syncRelicDone(sel.p);
   select(sel.p, sel.id);
   progress();
   search();
@@ -1135,7 +1187,7 @@ document.getElementById('btn-reset').onclick = () => {
   if (DONE.size) {                                   // 하나라도 완료됨 → 전체 초기화
     if (!confirm(T('confirmReset').replace('{n}', DONE.size))) return;
     DONE.clear();
-    clearFragTraces();
+    clearFragChests();
   } else {                                           // 아무것도 없음 → 전체 완료
     if (!confirm(T('confirmDone'))) return;
     DONE = new Set(DONEABLE.filter(p => p.kind).map(keyOf));
@@ -1143,6 +1195,7 @@ document.getElementById('btn-reset').onclick = () => {
     for (const p of (M.points.quest || []))
       (p.quests || []).forEach((_, i) => DONE.add(qKey(p, i)));
     for (const p of (M.points.trace || [])) syncFragTrace(p.num, DONE.has(keyOf(p)));
+    for (const p of (M.points.relic || [])) syncFragRelic(p.num, DONE.has(keyOf(p)));
   }
   saveDone(); progress(); search(); draw();
 };

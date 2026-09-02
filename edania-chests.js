@@ -1,17 +1,24 @@
 /**
- * Edania II Agris chest tracker (Tachyon Traces, localStorage).
+ * Edania II Agris chest tracker (Tachyon Traces + Legacy, localStorage).
  */
 (function () {
   const STORAGE_KEY = "frag-edania-ii-chests-v1";
   const MAP_STORE = "bdo_tachyon_done";
   const TRACE_PREFIX = "흔적-";
-  const TOTAL = 89;
+  const LEGACY_PREFIX = "유산-";
+  const TRACE_TOTAL = 89;
+  const LEGACY_MISSING = new Set([15, 30, 45, 60, 75]);
+  const LEGACY_TOTAL = TRACE_TOTAL - LEGACY_MISSING.size;
 
   let panelEl = null;
   let mounted = false;
   let filter = "all";
   let query = "";
   let data = [];
+
+  function hasLegacy(id) {
+    return id >= 1 && id <= TRACE_TOTAL && !LEGACY_MISSING.has(id);
+  }
 
   function roman(n) {
     const v = [
@@ -39,6 +46,12 @@
     return s;
   }
 
+  function isCardDone(item) {
+    if (!item.trace) return false;
+    if (hasLegacy(item.id) && !item.legacy) return false;
+    return true;
+  }
+
   function loadSaved() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -49,27 +62,42 @@
 
   function loadData() {
     const saved = loadSaved();
-    data = Array.from({ length: TOTAL }, (_, i) => {
+    data = Array.from({ length: TRACE_TOTAL }, (_, i) => {
       const id = i + 1;
       const entry = saved[id] || {};
-      return { id, done: Boolean(entry.done) };
+      return {
+        id,
+        trace: Boolean(entry.trace ?? entry.done),
+        legacy: Boolean(entry.legacy),
+      };
     });
-    mergeMapTracesOnLoad();
+    mergeMapChestsOnLoad();
   }
 
-  function mergeMapTracesOnLoad() {
+  function mergeMapChestsOnLoad() {
     try {
       const done = JSON.parse(localStorage.getItem(MAP_STORE) || "[]");
       let changed = false;
       for (const key of done) {
         const text = String(key);
-        if (!text.startsWith(TRACE_PREFIX)) continue;
-        const num = Number(text.slice(TRACE_PREFIX.length));
-        if (!Number.isFinite(num) || num < 1 || num > TOTAL) continue;
-        const item = data.find((x) => x.id === num);
-        if (item && !item.done) {
-          item.done = true;
-          changed = true;
+        let item = null;
+        if (text.startsWith(TRACE_PREFIX)) {
+          const num = Number(text.slice(TRACE_PREFIX.length));
+          if (!Number.isFinite(num) || num < 1 || num > TRACE_TOTAL) continue;
+          item = data.find((x) => x.id === num);
+          if (item && !item.trace) {
+            item.trace = true;
+            changed = true;
+          }
+        } else if (text.startsWith(LEGACY_PREFIX)) {
+          const num = Number(text.slice(LEGACY_PREFIX.length));
+          if (!Number.isFinite(num) || num < 1 || num > TRACE_TOTAL) continue;
+          if (!hasLegacy(num)) continue;
+          item = data.find((x) => x.id === num);
+          if (item && !item.legacy) {
+            item.legacy = true;
+            changed = true;
+          }
         }
       }
       if (changed) persist();
@@ -78,10 +106,10 @@
     }
   }
 
-  function syncMapTrace(num, done) {
+  function syncMapKey(prefix, num, done) {
     try {
       const doneList = JSON.parse(localStorage.getItem(MAP_STORE) || "[]");
-      const key = `${TRACE_PREFIX}${num}`;
+      const key = `${prefix}${num}`;
       const set = new Set(doneList);
       if (done) set.add(key);
       else set.delete(key);
@@ -89,17 +117,31 @@
     } catch {
       /* ignore */
     }
+  }
+
+  function syncMapTrace(num, done) {
+    syncMapKey(TRACE_PREFIX, num, done);
     const frame = panelEl?.querySelector("#ect-map-frame");
     frame?.contentWindow?.postMessage({ type: "frag-trace-set", num, done: !!done }, "*");
   }
 
-  function clearMapTraceDone() {
+  function syncMapLegacy(num, done) {
+    syncMapKey(LEGACY_PREFIX, num, done);
+    const frame = panelEl?.querySelector("#ect-map-frame");
+    frame?.contentWindow?.postMessage({ type: "frag-relic-set", num, done: !!done }, "*");
+  }
+
+  function clearMapChestDone() {
     try {
       const done = JSON.parse(localStorage.getItem(MAP_STORE) || "[]");
-      const filtered = done.filter((key) => !String(key).startsWith(TRACE_PREFIX));
+      const filtered = done.filter((key) => {
+        const text = String(key);
+        return !text.startsWith(TRACE_PREFIX) && !text.startsWith(LEGACY_PREFIX);
+      });
       localStorage.setItem(MAP_STORE, JSON.stringify(filtered));
       const frame = panelEl?.querySelector("#ect-map-frame");
       frame?.contentWindow?.postMessage({ type: "frag-trace-reset" }, "*");
+      frame?.contentWindow?.postMessage({ type: "frag-relic-reset" }, "*");
     } catch {
       /* ignore */
     }
@@ -107,8 +149,16 @@
 
   function applyTraceDone(num, done) {
     const item = data.find((x) => x.id === num);
-    if (!item || item.done === done) return;
-    item.done = done;
+    if (!item || item.trace === done) return;
+    item.trace = done;
+    persist();
+    render();
+  }
+
+  function applyLegacyDone(num, done) {
+    const item = data.find((x) => x.id === num);
+    if (!item || !hasLegacy(num) || item.legacy === done) return;
+    item.legacy = done;
     persist();
     render();
   }
@@ -116,41 +166,65 @@
   function persist() {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(Object.fromEntries(data.map((x) => [x.id, x])))
+      JSON.stringify(
+        Object.fromEntries(
+          data.map((x) => [
+            x.id,
+            { id: x.id, trace: x.trace, legacy: x.legacy },
+          ])
+        )
+      )
     );
   }
 
   function cardHTML(x) {
-    const label = `Tachyon Trace ${roman(x.id)}`;
-    return `<article class="ect-card ${x.done ? "ect-card--done" : ""}" data-id="${x.id}">
-      <div class="ect-card-top">
-        <input class="ect-check" type="checkbox" ${x.done ? "checked" : ""} aria-label="Mark ${label} as collected">
-        <div class="ect-trace">${label}</div>
-      </div>
+    const rom = roman(x.id);
+    const traceLabel = `Tachyon Trace ${rom}`;
+    const legacyLabel = `Tachyon Legacy ${rom}`;
+    const legacyRow = hasLegacy(x.id)
+      ? `<label class="ect-row">
+          <input class="ect-check ect-check--legacy" type="checkbox" data-kind="legacy" ${x.legacy ? "checked" : ""} aria-label="Mark ${legacyLabel} as collected">
+          <span class="ect-label ect-label--legacy">${legacyLabel}</span>
+        </label>`
+      : "";
+    return `<article class="ect-card ${isCardDone(x) ? "ect-card--done" : ""}" data-id="${x.id}">
+      <label class="ect-row">
+        <input class="ect-check ect-check--trace" type="checkbox" data-kind="trace" ${x.trace ? "checked" : ""} aria-label="Mark ${traceLabel} as collected">
+        <span class="ect-label ect-label--trace">${traceLabel}</span>
+      </label>
+      ${legacyRow}
     </article>`;
   }
 
   function updateStats() {
-    const n = data.filter((x) => x.done).length;
-    const p = Math.round((n / TOTAL) * 100);
-    const found = panelEl?.querySelector("#ect-found");
-    const missing = panelEl?.querySelector("#ect-missing");
-    const percent = panelEl?.querySelector("#ect-percent");
-    const progressText = panelEl?.querySelector("#ect-progress-text");
-    const fill = panelEl?.querySelector("#ect-fill");
-    const progressHint = panelEl?.querySelector("#ect-progress-hint");
+    const traceFound = data.filter((x) => x.trace).length;
+    const legacyFound = data.filter((x) => hasLegacy(x.id) && x.legacy).length;
+    const tracePct = Math.round((traceFound / TRACE_TOTAL) * 100);
+    const legacyPct = Math.round((legacyFound / LEGACY_TOTAL) * 100);
 
-    if (found) found.textContent = String(n);
-    if (missing) missing.textContent = String(TOTAL - n);
-    if (percent) percent.textContent = `${p}%`;
-    if (progressText) progressText.textContent = `${n} / ${TOTAL}`;
-    if (fill) fill.style.width = `${p}%`;
-    if (progressHint) {
-      progressHint.textContent =
-        n === TOTAL
-          ? "Every chest collected. Legendary work."
-          : `${TOTAL - n} chest${TOTAL - n === 1 ? "" : "s"} remaining`;
-    }
+    const traceFoundEl = panelEl?.querySelector("#ect-trace-found");
+    const traceMissingEl = panelEl?.querySelector("#ect-trace-missing");
+    const tracePercentEl = panelEl?.querySelector("#ect-trace-percent");
+    const traceProgressEl = panelEl?.querySelector("#ect-trace-progress");
+    const traceFill = panelEl?.querySelector("#ect-trace-fill");
+
+    const legacyFoundEl = panelEl?.querySelector("#ect-legacy-found");
+    const legacyMissingEl = panelEl?.querySelector("#ect-legacy-missing");
+    const legacyPercentEl = panelEl?.querySelector("#ect-legacy-percent");
+    const legacyProgressEl = panelEl?.querySelector("#ect-legacy-progress");
+    const legacyFill = panelEl?.querySelector("#ect-legacy-fill");
+
+    if (traceFoundEl) traceFoundEl.textContent = String(traceFound);
+    if (traceMissingEl) traceMissingEl.textContent = String(TRACE_TOTAL - traceFound);
+    if (tracePercentEl) tracePercentEl.textContent = `${tracePct}%`;
+    if (traceProgressEl) traceProgressEl.textContent = `${traceFound} / ${TRACE_TOTAL}`;
+    if (traceFill) traceFill.style.width = `${tracePct}%`;
+
+    if (legacyFoundEl) legacyFoundEl.textContent = String(legacyFound);
+    if (legacyMissingEl) legacyMissingEl.textContent = String(LEGACY_TOTAL - legacyFound);
+    if (legacyPercentEl) legacyPercentEl.textContent = `${legacyPct}%`;
+    if (legacyProgressEl) legacyProgressEl.textContent = `${legacyFound} / ${LEGACY_TOTAL}`;
+    if (legacyFill) legacyFill.style.width = `${legacyPct}%`;
   }
 
   function notifyMapResize() {
@@ -164,9 +238,11 @@
     if (!cards) return;
 
     const list = data.filter((x) => {
-      const t = `${x.id} tachyon trace ${roman(x.id)}`.toLowerCase();
+      const t =
+        `${x.id} tachyon trace legacy ${roman(x.id)}`.toLowerCase();
       const state =
-        filter === "all" || (filter === "done" ? x.done : !x.done);
+        filter === "all" ||
+        (filter === "done" ? isCardDone(x) : !isCardDone(x));
       return state && t.includes(query);
     });
 
@@ -187,9 +263,18 @@
       const card = e.target.closest(".ect-card");
       const item = data.find((x) => x.id === Number(card?.dataset.id));
       if (!item) return;
-      item.done = e.target.checked;
-      persist();
-      syncMapTrace(item.id, item.done);
+      const kind = e.target.getAttribute("data-kind");
+      const checked = e.target.checked;
+      if (kind === "legacy") {
+        if (!hasLegacy(item.id)) return;
+        item.legacy = checked;
+        persist();
+        syncMapLegacy(item.id, checked);
+      } else {
+        item.trace = checked;
+        persist();
+        syncMapTrace(item.id, checked);
+      }
       render();
     });
 
@@ -230,7 +315,7 @@
       if (e.target.closest("#ect-reset")) {
         if (confirm("Clear all Edania II chest progress on this device?")) {
           localStorage.removeItem(STORAGE_KEY);
-          clearMapTraceDone();
+          clearMapChestDone();
           loadData();
           filter = "all";
           query = "";
@@ -268,9 +353,19 @@
           const num = Number(msg.num);
           if (!Number.isFinite(num)) return;
           applyTraceDone(num, !!msg.done);
+        } else if (msg.type === "frag-relic-done") {
+          const num = Number(msg.num);
+          if (!Number.isFinite(num)) return;
+          applyLegacyDone(num, !!msg.done);
         } else if (msg.type === "frag-trace-reset") {
           data.forEach((item) => {
-            item.done = false;
+            item.trace = false;
+          });
+          persist();
+          render();
+        } else if (msg.type === "frag-relic-reset") {
+          data.forEach((item) => {
+            item.legacy = false;
           });
           persist();
           render();

@@ -2146,6 +2146,18 @@ tfoot td.str {
   transition: width 0.25s ease;
 }
 
+.ect-fill--trace {
+  background: linear-gradient(90deg, #d84fd0, #ff57e0);
+}
+
+.ect-fill--legacy {
+  background: linear-gradient(90deg, #d4a82a, #ffd54a);
+}
+
+.ect-statgrid--compact {
+  margin-top: 0.65rem;
+}
+
 .ect-statgrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2292,7 +2304,7 @@ tfoot td.str {
 
 .ect-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 0.5rem;
 }
 
@@ -2301,8 +2313,11 @@ tfoot td.str {
   background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.65rem 0.75rem;
+  padding: 0.55rem 0.7rem;
   transition: 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .ect-card:hover {
@@ -2323,6 +2338,42 @@ tfoot td.str {
   display: flex;
   gap: 0.6rem;
   align-items: center;
+}
+
+.ect-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ect-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ect-label--trace {
+  color: #ffc4f2;
+}
+
+.ect-label--legacy {
+  color: #ffe9a3;
+}
+
+.ect-check--trace:checked {
+  background: #ff57e0;
+  border-color: #ff57e0;
+}
+
+.ect-check--legacy:checked {
+  background: #ffd54a;
+  border-color: #ffd54a;
+}
+
+.ect-check--legacy:checked::after {
+  color: #2a2000;
 }
 
 .ect-check {

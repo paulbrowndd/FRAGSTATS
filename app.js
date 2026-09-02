@@ -1814,7 +1814,7 @@
   function renderEdaniaChestsTabBody() {
     hideStatsPanels();
     setMainViewChrome(VIEW.EDANIA_CHESTS);
-    metaEl.textContent = "Edania II Agris chest tracker · 89 Tachyon Traces";
+    metaEl.textContent = "Edania II Agris chest tracker · Tachyon Traces & Legacy";
     countEl.textContent = "";
     if (window.FRAGEdaniaChests) window.FRAGEdaniaChests.render();
   }
