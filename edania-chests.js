@@ -55,7 +55,7 @@
     const saved = loadSaved();
     data = Array.from({ length: TOTAL }, (_, i) =>
       Object.assign(
-        { id: i + 1, done: false, region: "", directions: "", link: "" },
+        { id: i + 1, done: false, region: "", directions: "" },
         saved[i + 1] || {}
       )
     );
@@ -69,7 +69,6 @@
   }
 
   function cardHTML(x) {
-    const link = esc(x.link || "#");
     return `<article class="ect-card ${x.done ? "ect-card--done" : ""}" data-id="${x.id}">
       <div class="ect-card-top">
         <input class="ect-check" type="checkbox" ${x.done ? "checked" : ""} aria-label="Mark ${roman(x.id)} as collected">
@@ -85,10 +84,6 @@
       <div class="ect-field">
         <label>Directions / Notes</label>
         <div class="ect-editable" contenteditable data-field="directions" data-placeholder="Add route, combat note, etc.…">${esc(x.directions)}</div>
-      </div>
-      <div class="ect-links">
-        <a href="${link}" class="ect-video" target="_blank" rel="noopener">▶ Video location</a>
-        <span class="ect-editable" contenteditable data-field="link" data-placeholder="Paste video link…" title="Paste a full YouTube timestamp link">${esc(x.link)}</span>
       </div>
     </article>`;
   }
@@ -157,10 +152,6 @@
       const field = e.target.getAttribute("data-field");
       item[field] = e.target.textContent.trim();
       persist();
-      if (field === "link") {
-        const a = e.target.parentElement?.querySelector(".ect-video");
-        if (a) a.href = item.link || "#";
-      }
     });
 
     panelEl.addEventListener("input", (e) => {

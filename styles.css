@@ -2327,32 +2327,6 @@ tfoot td.str {
   color: #657184;
 }
 
-.ect-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  align-items: center;
-  margin-top: 0.65rem;
-}
-
-.ect-links a {
-  color: var(--accent-bright);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 0.8rem;
-}
-
-.ect-links a:hover {
-  text-decoration: underline;
-}
-
-.ect-links .ect-editable {
-  flex: 1;
-  min-width: 120px;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
 .ect-empty {
   color: var(--muted);
   padding: 2rem;
