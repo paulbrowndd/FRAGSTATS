@@ -177,6 +177,14 @@
           });
           render();
         }
+        return;
+      }
+
+      if (e.target.closest("#ect-map-fullscreen")) {
+        const frame = panelEl.querySelector("#ect-map-frame");
+        if (!frame) return;
+        if (frame.requestFullscreen) frame.requestFullscreen();
+        else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
       }
     });
   }

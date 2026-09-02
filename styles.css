@@ -2158,6 +2158,56 @@ tfoot td.str {
   font-size: 0.78rem;
 }
 
+.ect-map-wrap {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.ect-map-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ect-map-title {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+
+.ect-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ect-map-frame {
+  display: block;
+  width: 100%;
+  height: min(62vh, 560px);
+  min-height: 320px;
+  border: 0;
+  background: #183435;
+}
+
+.ect-map-note {
+  margin: 0;
+  padding: 0.55rem 0.9rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.ect-map-note a {
+  color: var(--accent-bright);
+}
+
 .ect-controls {
   display: flex;
   flex-wrap: wrap;

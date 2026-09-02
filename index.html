@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260902c" />
+    <link rel="stylesheet" href="styles.css?v=20260902d" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -210,6 +210,24 @@
             </div>
           </div>
         </section>
+        <section class="ect-map-wrap" aria-label="Edania II chest map">
+          <div class="ect-map-head">
+            <h3 class="ect-map-title">Chest Map</h3>
+            <div class="ect-map-actions">
+              <a class="ect-btn" href="https://www.korbdo.co.kr/#tachyon" target="_blank" rel="noopener">Open on korbdo</a>
+              <button type="button" class="ect-btn ect-btn--gold" id="ect-map-fullscreen">Fullscreen</button>
+            </div>
+          </div>
+          <iframe
+            id="ect-map-frame"
+            class="ect-map-frame"
+            title="Edania II chest map"
+            src="edania-map.html"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <p class="ect-map-note">Shows Tachyon Legacy and Tachyon Trace chests only. Map data from <a href="https://www.korbdo.co.kr/#tachyon" target="_blank" rel="noopener">korbdo.co.kr</a>.</p>
+        </section>
         <div class="ect-controls">
           <input id="ect-search" type="search" placeholder="Search chest…" autocomplete="off" />
           <button type="button" class="ect-btn ect-filter ect-filter--active" data-filter="all">All</button>
@@ -238,7 +256,7 @@
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
     <script src="class-rankings.js?v=20260826a"></script>
-    <script src="edania-chests.js?v=20260902c"></script>
-    <script src="app.js?v=20260902c"></script>
+    <script src="edania-chests.js?v=20260902d"></script>
+    <script src="app.js?v=20260902d"></script>
   </body>
 </html>
