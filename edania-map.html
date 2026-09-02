@@ -274,6 +274,7 @@ const tipEl = document.getElementById('tip'), selEl = document.getElementById('s
 let DPR = 1, VW = 0, VH = 0;
 
 const CHEST = ['relic', 'trace'];
+const MAP_LAYERS = ['relic', 'trace', 'quest', 'klore'];
 const ALLCHEST = CHEST.flatMap(id => M.points[id] || []);
 // 마커 반지름 — 상자를 다른 마커보다 살짝만 크게
 const radius = id => CHEST.includes(id) ? Math.max(2.8, Math.min(6.5, view.k * .22))
@@ -281,7 +282,7 @@ const radius = id => CHEST.includes(id) ? Math.max(2.8, Math.min(6.5, view.k * .
                                    : Math.max(2.2, Math.min(5.0, view.k * .17));
 
 const on = {};
-for (const id in M.points) on[id] = CHEST.includes(id);
+for (const id in M.points) on[id] = MAP_LAYERS.includes(id);
 // 금주화 퀘스트 NPC 는 거점 관리인이기도 하다.
 //  퀘스트 레이어를 꺼도 거점 관리인 레이어가 켜져 있으면 일반 거점으로 계속 보여준다.
 const questAsNode = () => (!on.quest && on.node) ? (M.points.quest || []) : [];
@@ -972,7 +973,7 @@ const layerCount = id => id === 'quest'
 
 // ── 레이어 UI
 const box = document.getElementById('layers');
-for (const id of ['relic', 'trace']) {
+for (const id of MAP_LAYERS) {
   if (!M.points[id]) continue;
   const L = M.meta.layers[id];
   const el = document.createElement('label');
@@ -1122,8 +1123,8 @@ document.getElementById('ui-head').addEventListener('click', () => {
 });
 // 전체 보기 = 꺼둔 레이어를 전부 다시 켜서 마커를 모두 보이게 한다(시점은 그대로 둔다).
 document.getElementById('btn-fit').onclick = () => {
-  for (const id in on) on[id] = CHEST.includes(id);
-  for (const el of document.querySelectorAll('#layers .layer input')) el.checked = CHEST.includes(el.closest('.layer').dataset.layer);
+  for (const id in on) on[id] = MAP_LAYERS.includes(id);
+  for (const el of document.querySelectorAll('#layers .layer input')) el.checked = MAP_LAYERS.includes(el.closest('.layer').dataset.layer);
   search(); draw();
 };
 // 완료된 게 없으면 '전체 완료', 하나라도 있으면 '전체 초기화'
