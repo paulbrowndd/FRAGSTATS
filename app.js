@@ -2375,6 +2375,9 @@
       const on = btn.getAttribute("data-view") === view;
       btn.classList.toggle("tab--active", on);
       btn.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) {
+        btn.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+      }
     });
     updateScopeVisibility();
     renderBody();

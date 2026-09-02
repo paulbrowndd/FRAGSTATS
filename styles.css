@@ -258,6 +258,7 @@ body {
   gap: 1rem;
   padding: 1rem 1.1rem;
   margin-bottom: 0.75rem;
+  min-width: 0;
 }
 
 .panel--toolbar {
@@ -277,12 +278,27 @@ body {
 /* Tabs */
 .tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.35rem;
   padding: 0.25rem;
   background: var(--bg-elevated);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 122, 82, 0.45) transparent;
+}
+
+.tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+  background: rgba(255, 122, 82, 0.45);
+  border-radius: 999px;
 }
 
 .tab {
@@ -296,6 +312,8 @@ body {
   background: transparent;
   color: var(--muted);
   transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .tab:hover {
@@ -1568,15 +1586,9 @@ tfoot td.str {
     margin-left: 0;
   }
 
-  .tabs {
-    justify-content: stretch;
-  }
-
   .tab {
-    flex: 1 1 auto;
-    text-align: center;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.82rem;
   }
 
   .field {
@@ -2188,6 +2200,13 @@ tfoot td.str {
   gap: 0.45rem;
 }
 
+.ect-map-actions .ect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .ect-map-frame {
   display: block;
   width: 100%;
@@ -2356,5 +2375,92 @@ tfoot td.str {
 @media (max-width: 720px) {
   .ect-dashboard {
     grid-template-columns: 1fr;
+  }
+
+  .edania-chests-panel {
+    padding: 0.75rem 0.65rem 1.25rem;
+  }
+
+  .ect-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .ect-title {
+    font-size: 1.15rem;
+    line-height: 1.2;
+  }
+
+  .ect-sub {
+    font-size: 0.82rem;
+  }
+
+  .ect-map-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ect-map-actions {
+    width: 100%;
+  }
+
+  .ect-map-actions .ect-btn {
+    flex: 1;
+    min-height: 2.5rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .ect-map-frame {
+    height: min(52vh, 420px);
+    min-height: 220px;
+  }
+
+  .ect-map-note {
+    font-size: 0.7rem;
+    line-height: 1.45;
+  }
+
+  .ect-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    align-items: stretch;
+  }
+
+  .ect-controls input {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+    min-height: 2.5rem;
+  }
+
+  .ect-controls .ect-btn {
+    min-height: 2.5rem;
+    padding: 0.55rem 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .ect-controls #ect-next,
+  .ect-controls #ect-reset {
+    grid-column: 1 / -1;
+  }
+
+  .ect-cards {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .ect-card {
+    padding: 0.6rem 0.7rem;
+  }
+
+  .ect-check {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+  }
+
+  .ect-trace {
+    font-size: 0.9rem;
   }
 }
