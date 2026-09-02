@@ -153,6 +153,11 @@
     }
   }
 
+  function notifyMapResize() {
+    const frame = panelEl?.querySelector("#ect-map-frame");
+    frame?.contentWindow?.postMessage({ type: "frag-map-resize" }, "*");
+  }
+
   function render() {
     if (!panelEl) return;
     const cards = panelEl.querySelector("#ect-cards");
@@ -170,6 +175,7 @@
       : '<div class="ect-empty">No chests match that search.</div>';
 
     updateStats();
+    notifyMapResize();
   }
 
   function bindEvents() {

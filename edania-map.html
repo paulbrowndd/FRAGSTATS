@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Edania II Chest Map</title>
 <style>
   :root {
@@ -17,7 +18,7 @@
 
   /* 화면(또는 iframe)이 낮아도 아래 버튼(전체 보기·저장 등)이 잘리지 않게 — 패널 안에서 스크롤. */
   #ui { top: 12px; left: 12px; width: 252px; padding: 12px 14px;
-    max-height: calc(100vh - 24px); display: flex; flex-direction: column; }
+    max-height: calc(100vh - 24px); display: flex; flex-direction: column; z-index: 8; }
   #ui-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
   #ui-body::-webkit-scrollbar { width: 6px; }
   #ui-body::-webkit-scrollbar-thumb { background: #3a4552; border-radius: 3px; }
@@ -167,6 +168,13 @@
 
   /* 이미지/맵 우클릭 저장 방지 */
   #lb img, #sel-imgs img, #map { -webkit-touch-callout: none; }
+
+  @media (max-width: 520px) {
+    #ui { width: min(210px, calc(100vw - 24px)); top: 8px; left: 8px; padding: 10px 12px; }
+    #sel { width: min(210px, calc(100vw - 24px)); }
+    #lang { bottom: 8px; right: 8px; }
+    #map-credit { left: 8px; bottom: 8px; max-width: calc(100vw - 96px); }
+  }
 </style>
 
 <canvas id="map"></canvas>
@@ -417,6 +425,10 @@ window.addEventListener('message', (e) => {
     progress();
     search();
     draw();
+    return;
+  }
+  if (msg.type === 'frag-map-resize') {
+    resize();
   }
 });
 
@@ -737,19 +749,57 @@ addEventListener('keydown', e => {
 
 // ── 상호작용
 let drag = null;
+let pinch = null;
+let touchTap = null;
+
+function zoomAt(px, py, factor) {
+  const u0 = ux(px), v0 = vy(py);
+  view.k = Math.max(kFit(), Math.min(256, view.k * factor));
+  view.u = u0 - (px - VW / 2) / view.k;
+  view.v = v0 - (py - VH / 2) / view.k;
+  clamp();
+  draw();
+}
+
+function touchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function touchCenter(touches) {
+  return {
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2,
+  };
+}
+
+function endDrag() {
+  drag = null;
+  pinch = null;
+  touchTap = null;
+  cv.classList.remove('drag');
+}
+
+function tapSelect(clientX, clientY) {
+  const near = nearest({ clientX, clientY });
+  if (near) select(near.p, near.id);
+  else { sel = null; draw(); }
+}
+
 cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') return;
   drag = { x: e.clientX, y: e.clientY, u: view.u, v: view.v };
-  cv.setPointerCapture(e.pointerId); cv.classList.add('drag');
+  cv.setPointerCapture(e.pointerId);
+  cv.classList.add('drag');
 });
 cv.addEventListener('pointerup', e => {
-  if (drag && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) {
-    const near = nearest(e);
-    if (near) select(near.p, near.id);
-    else { sel = null; draw(); }
-  }
-  drag = null; cv.classList.remove('drag');
+  if (e.pointerType === 'touch') return;
+  if (drag && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) tapSelect(e.clientX, e.clientY);
+  endDrag();
 });
 cv.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return;
   if (drag) {
     view.u = drag.u - (e.clientX - drag.x) / view.k;
     view.v = drag.v - (e.clientY - drag.y) / view.k;
@@ -758,13 +808,68 @@ cv.addEventListener('pointermove', e => {
   }
   hover(e);
 });
+cv.addEventListener('pointercancel', endDrag);
+
+cv.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    endDrag();
+    const c = touchCenter(e.touches);
+    pinch = {
+      d0: touchDist(e.touches),
+      k0: view.k,
+      anchorU: ux(c.x),
+      anchorV: vy(c.y),
+    };
+    return;
+  }
+  if (e.touches.length === 1 && !pinch) {
+    const t = e.touches[0];
+    drag = { x: t.clientX, y: t.clientY, u: view.u, v: view.v };
+    touchTap = { x: t.clientX, y: t.clientY };
+    cv.classList.add('drag');
+  }
+}, { passive: false });
+
+cv.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && pinch) {
+    e.preventDefault();
+    const c = touchCenter(e.touches);
+    const scale = touchDist(e.touches) / pinch.d0;
+    view.k = Math.max(kFit(), Math.min(256, pinch.k0 * scale));
+    view.u = pinch.anchorU - (c.x - VW / 2) / view.k;
+    view.v = pinch.anchorV - (c.y - VH / 2) / view.k;
+    clamp();
+    draw();
+    tipEl.style.display = 'none';
+    return;
+  }
+  if (e.touches.length === 1 && drag && !pinch) {
+    e.preventDefault();
+    const t = e.touches[0];
+    view.u = drag.u - (t.clientX - drag.x) / view.k;
+    view.v = drag.v - (t.clientY - drag.y) / view.k;
+    clamp();
+    draw();
+    tipEl.style.display = 'none';
+  }
+}, { passive: false });
+
+cv.addEventListener('touchend', e => {
+  if (e.touches.length < 2) pinch = null;
+  if (e.touches.length > 0) return;
+  if (drag && touchTap) {
+    const t = e.changedTouches[0];
+    if (t && Math.hypot(t.clientX - touchTap.x, t.clientY - touchTap.y) < 12) {
+      tapSelect(touchTap.x, touchTap.y);
+    }
+  }
+  endDrag();
+});
+
 cv.addEventListener('wheel', e => {
   e.preventDefault();
-  const u0 = ux(e.clientX), v0 = vy(e.clientY);
-  view.k = Math.max(kFit(), Math.min(256, view.k * Math.pow(1.0016, -e.deltaY)));
-  view.u = u0 - (e.clientX - VW / 2) / view.k;
-  view.v = v0 - (e.clientY - VH / 2) / view.k;
-  clamp(); draw();
+  zoomAt(e.clientX, e.clientY, Math.pow(1.0016, -e.deltaY));
 }, { passive: false });
 
 // ── 라이트박스(이미지 크게 보기 + 좌우 넘김)
@@ -1121,4 +1226,8 @@ for (const code of ['ko', 'en']) {
   };
 }
 applyLang();
+if (window.matchMedia('(max-width: 520px)').matches) {
+  document.getElementById('ui').classList.add('collapsed');
+  document.getElementById('ui-caret').textContent = T('expand');
+}
 </script>

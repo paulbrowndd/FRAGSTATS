@@ -2176,6 +2176,8 @@ tfoot td.str {
   border-radius: 12px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.18);
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .ect-map-head {
@@ -2214,6 +2216,7 @@ tfoot td.str {
   min-height: 320px;
   border: 0;
   background: #183435;
+  touch-action: none;
 }
 
 .ect-map-note {
