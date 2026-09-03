@@ -1,13 +1,13 @@
 /**
  * Client-side gate for FRAG stats tabs (Edania chest tracker stays public).
- * Default password: fragstats — change with ./tools/set-site-password.sh
+ * Site password hash — change with ./tools/set-site-password.sh
  */
 (function () {
   const PUBLIC_VIEW = "edania-chests";
   const SESSION_KEY = "frag-site-auth-v1";
   const REMEMBER_KEY = "frag-site-auth-remember-v1";
   const PASSWORD_HASH =
-    "444099ae103894b903f9d9b2912cecde6d25fad1fa4d9f14a53d363225bb4a55";
+    "7e1180c2c615e9d3203166a9f070468c46f13ed698d05819a7e91ed8b3d8b2c3";
 
   let gateEl = null;
   let formEl = null;
