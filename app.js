@@ -35,7 +35,6 @@
     SIEGE_TICKETS: "siege-tickets",
     CLASS_RANKINGS: "class-rankings",
     EDANIA_CHESTS: "edania-chests",
-    SOMETHINGLOVELY: "somethinglovely",
   };
 
   const ATTENDANCE_COLS = [
@@ -76,7 +75,6 @@
   const siegeTicketsPanel = document.getElementById("siege-tickets-panel");
   const classRankingsPanel = document.getElementById("class-rankings-panel");
   const edaniaChestsPanel = document.getElementById("edania-chests-panel");
-  const somethingLovelyPanel = document.getElementById("somethinglovely-panel");
   const statsTablePanel = document.getElementById("stats-table-panel");
   const toolbarPanel = document.getElementById("toolbar-panel");
   const siteAuthLockBtn = document.getElementById("site-auth-lock");
@@ -84,7 +82,6 @@
   function isPublicView(view) {
     return (
       view === VIEW.EDANIA_CHESTS ||
-      view === VIEW.SOMETHINGLOVELY ||
       (window.FRAGSiteAuth && window.FRAGSiteAuth.isPublicView(view))
     );
   }
@@ -129,7 +126,6 @@
     if (siegeTicketsPanel) siegeTicketsPanel.hidden = true;
     if (classRankingsPanel) classRankingsPanel.hidden = true;
     if (edaniaChestsPanel) edaniaChestsPanel.hidden = true;
-    if (somethingLovelyPanel) somethingLovelyPanel.hidden = true;
     if (mvpSection) mvpSection.hidden = true;
     if (warAnalysisPanel) warAnalysisPanel.hidden = true;
     if (attendancePanel) attendancePanel.hidden = true;
@@ -1870,21 +1866,12 @@
     const standalone =
       view === VIEW.SIEGE_TICKETS ||
       view === VIEW.CLASS_RANKINGS ||
-      view === VIEW.EDANIA_CHESTS ||
-      view === VIEW.SOMETHINGLOVELY;
+      view === VIEW.EDANIA_CHESTS;
     if (statsTablePanel) statsTablePanel.hidden = standalone;
     if (toolbarPanel) toolbarPanel.hidden = standalone;
     if (siegeTicketsPanel) siegeTicketsPanel.hidden = view !== VIEW.SIEGE_TICKETS;
     if (classRankingsPanel) classRankingsPanel.hidden = view !== VIEW.CLASS_RANKINGS;
     if (edaniaChestsPanel) edaniaChestsPanel.hidden = view !== VIEW.EDANIA_CHESTS;
-    if (somethingLovelyPanel) somethingLovelyPanel.hidden = view !== VIEW.SOMETHINGLOVELY;
-  }
-
-  function renderSomethingLovelyTabBody() {
-    hideStatsPanels();
-    setMainViewChrome(VIEW.SOMETHINGLOVELY);
-    metaEl.textContent = "SomethingLovely · BDO world map by Famme";
-    countEl.textContent = "";
   }
 
   function renderClassRankingsTabBody() {
@@ -2280,11 +2267,6 @@
       return;
     }
 
-    if (currentView === VIEW.SOMETHINGLOVELY) {
-      renderSomethingLovelyTabBody();
-      return;
-    }
-
     setMainViewChrome(currentView);
 
     if (currentView === VIEW.ATTENDANCE) {
@@ -2446,7 +2428,6 @@
     const lifetime = currentView === VIEW.LIFETIME;
     const classRankings = currentView === VIEW.CLASS_RANKINGS;
     const edaniaChests = currentView === VIEW.EDANIA_CHESTS;
-    const somethingLovely = currentView === VIEW.SOMETHINGLOVELY;
 
     dateField.hidden = !daily;
     weekField.hidden = !weekly && !attendance;
@@ -2455,7 +2436,6 @@
       lifetime ||
       classRankings ||
       edaniaChests ||
-      somethingLovely ||
       (!daily && !weekly && !monthly && !attendance);
 
     weekField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "week");
@@ -2595,13 +2575,6 @@
     });
 
     setView(canAccessView(VIEW.DAILY) ? VIEW.DAILY : VIEW.EDANIA_CHESTS);
-
-    document.getElementById("sl-map-fullscreen")?.addEventListener("click", () => {
-      const frame = document.getElementById("sl-map-frame");
-      if (!frame) return;
-      if (frame.requestFullscreen) frame.requestFullscreen();
-      else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
-    });
 
     if (window.FRAGSiteAuth) {
       window.FRAGSiteAuth.mount();

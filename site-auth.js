@@ -3,7 +3,7 @@
  * Site password hash — change with ./tools/set-site-password.sh
  */
 (function () {
-  const PUBLIC_VIEWS = new Set(["edania-chests", "somethinglovely"]);
+  const PUBLIC_VIEWS = new Set(["edania-chests"]);
   const SESSION_KEY = "frag-site-auth-v1";
   const REMEMBER_KEY = "frag-site-auth-remember-v1";
   const PASSWORD_HASH =
