@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Frag</title>
-    <link rel="stylesheet" href="styles.css?v=20260902j" />
+    <title>FRAG · Node War Stats</title>
+    <link rel="stylesheet" href="styles.css?v=20260903a" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -18,9 +18,37 @@
             <p class="brand-tag"><span class="brand-tag-led" aria-hidden="true"></span>FRAG</p>
             <h1>Node War Stats</h1>
             <p class="meta" id="header-meta">Node war result</p>
+            <button type="button" id="site-auth-lock" class="site-auth-lock" hidden>Lock stats</button>
           </div>
         </div>
       </header>
+
+      <div id="site-auth-gate" class="site-auth-gate" hidden>
+        <div class="site-auth-card" role="dialog" aria-modal="true" aria-labelledby="site-auth-title">
+          <div class="led-bar led-bar--brand site-auth-led" aria-hidden="true"></div>
+          <h2 id="site-auth-title" class="site-auth-title">Members only</h2>
+          <p class="site-auth-sub">Enter the guild password to view node war stats and rankings.</p>
+          <form id="site-auth-form" class="site-auth-form">
+            <label class="site-auth-label" for="site-auth-input">Password</label>
+            <input
+              id="site-auth-input"
+              class="site-auth-input"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+            <label class="site-auth-remember">
+              <input id="site-auth-remember" type="checkbox" />
+              Remember on this device
+            </label>
+            <p id="site-auth-error" class="site-auth-error" hidden>Incorrect password. Try again.</p>
+            <div class="site-auth-actions">
+              <button type="submit" class="site-auth-btn site-auth-btn--primary">Unlock stats</button>
+              <button type="button" class="site-auth-btn" id="site-auth-back">Back to chest tracker</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <section class="panel panel--controls" aria-label="View and period">
         <div class="tabs" role="tablist" aria-label="View mode">
@@ -260,12 +288,13 @@
       </div>
     </div>
 
+    <script src="site-auth.js?v=20260903a"></script>
     <script src="guild.js?v=20260817a"></script>
     <script src="data.js"></script>
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
     <script src="class-rankings.js?v=20260826a"></script>
     <script src="edania-chests.js?v=20260902j"></script>
-    <script src="app.js?v=20260902j"></script>
+    <script src="app.js?v=20260903a"></script>
   </body>
 </html>

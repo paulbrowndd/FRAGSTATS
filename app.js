@@ -77,6 +77,69 @@
   const edaniaChestsPanel = document.getElementById("edania-chests-panel");
   const statsTablePanel = document.getElementById("stats-table-panel");
   const toolbarPanel = document.getElementById("toolbar-panel");
+  const siteAuthLockBtn = document.getElementById("site-auth-lock");
+
+  function canAccessView(view = currentView) {
+    if (view === VIEW.EDANIA_CHESTS) return true;
+    return window.FRAGSiteAuth ? window.FRAGSiteAuth.isUnlocked() : true;
+  }
+
+  function updateAuthChrome() {
+    const unlocked = window.FRAGSiteAuth ? window.FRAGSiteAuth.isUnlocked() : true;
+    if (siteAuthLockBtn) siteAuthLockBtn.hidden = !unlocked;
+    viewTabs.forEach((btn) => {
+      const view = btn.getAttribute("data-view");
+      const locked = view !== VIEW.EDANIA_CHESTS && !unlocked;
+      btn.classList.toggle("tab--locked", locked);
+      btn.setAttribute("aria-disabled", locked ? "true" : "false");
+      if (locked) btn.title = "Password required";
+      else btn.removeAttribute("title");
+    });
+  }
+
+  function updateTabStates() {
+    viewTabs.forEach((btn) => {
+      const view = btn.getAttribute("data-view");
+      const on = view === currentView;
+      const pending = pendingProtectedView && view === pendingProtectedView;
+      btn.classList.toggle("tab--active", on);
+      btn.classList.toggle("tab--pending", pending && !on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) {
+        btn.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+      }
+    });
+    updateAuthChrome();
+  }
+
+  function clearProtectedContent() {
+    hideStatsPanels();
+    if (statsTablePanel) statsTablePanel.hidden = true;
+    if (toolbarPanel) toolbarPanel.hidden = true;
+    if (siegeTicketsPanel) siegeTicketsPanel.hidden = true;
+    if (classRankingsPanel) classRankingsPanel.hidden = true;
+    if (edaniaChestsPanel) edaniaChestsPanel.hidden = true;
+    if (mvpSection) mvpSection.hidden = true;
+    if (warAnalysisPanel) warAnalysisPanel.hidden = true;
+    if (attendancePanel) attendancePanel.hidden = true;
+    metaEl.textContent = "Members only";
+    countEl.textContent = "";
+  }
+
+  function handleAuthGateResult(result) {
+    const pending = pendingProtectedView;
+    pendingProtectedView = null;
+    updateTabStates();
+    if (result === "back" || result === "locked") {
+      setView(VIEW.EDANIA_CHESTS);
+      return;
+    }
+    if (window.FRAGSiteAuth?.isUnlocked()) {
+      const next = pending && canAccessView(pending) ? pending : currentView;
+      if (canAccessView(next)) setView(next);
+      else setView(VIEW.EDANIA_CHESTS);
+    }
+  }
 
   const MVP_COMPONENTS = [
     { key: "enemyKills", label: "Enemy kills", weight: 0.2 },
@@ -111,6 +174,7 @@
   ];
 
   let currentView = VIEW.DAILY;
+  let pendingProtectedView = null;
   let currentDate = "";
   let currentWeekSunday = "";
   let currentMonth = "";
@@ -2174,6 +2238,11 @@
   }
 
   function renderBody() {
+    if (!canAccessView(currentView)) {
+      clearProtectedContent();
+      return;
+    }
+
     const data = getWarData();
 
     if (currentView === VIEW.SIEGE_TICKETS) {
@@ -2364,6 +2433,15 @@
   }
 
   function setView(view) {
+    if (!canAccessView(view)) {
+      pendingProtectedView = view;
+      window.FRAGSiteAuth?.showGate();
+      updateTabStates();
+      return;
+    }
+
+    pendingProtectedView = null;
+    window.FRAGSiteAuth?.hideGate();
     resetSort();
     excludedPlayers.clear();
     currentView = view;
@@ -2371,14 +2449,7 @@
       sortKey = "score";
       sortDir = "desc";
     }
-    viewTabs.forEach((btn) => {
-      const on = btn.getAttribute("data-view") === view;
-      btn.classList.toggle("tab--active", on);
-      btn.setAttribute("aria-selected", on ? "true" : "false");
-      if (on) {
-        btn.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
-      }
-    });
+    updateTabStates();
     updateScopeVisibility();
     renderBody();
   }
@@ -2493,7 +2564,13 @@
       renderBody();
     });
 
-    setView(VIEW.DAILY);
+    setView(canAccessView(VIEW.DAILY) ? VIEW.DAILY : VIEW.EDANIA_CHESTS);
+
+    if (window.FRAGSiteAuth) {
+      window.FRAGSiteAuth.mount();
+      window.FRAGSiteAuth.setOnUnlock(handleAuthGateResult);
+      updateAuthChrome();
+    }
 
     if (classRankingsPanel && window.FRAGClassRankings) {
       window.FRAGClassRankings.mount(classRankingsPanel);
