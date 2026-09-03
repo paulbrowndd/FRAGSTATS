@@ -1,9 +1,9 @@
 /**
- * Client-side gate for FRAG stats tabs (Edania chest tracker stays public).
+ * Client-side gate for FRAG stats tabs (public utility tabs stay open).
  * Site password hash — change with ./tools/set-site-password.sh
  */
 (function () {
-  const PUBLIC_VIEW = "edania-chests";
+  const PUBLIC_VIEWS = new Set(["edania-chests", "somethinglovely"]);
   const SESSION_KEY = "frag-site-auth-v1";
   const REMEMBER_KEY = "frag-site-auth-remember-v1";
   const PASSWORD_HASH =
@@ -15,6 +15,10 @@
   let errorEl = null;
   let rememberEl = null;
   let onUnlockCallback = null;
+
+  function isPublicView(view) {
+    return PUBLIC_VIEWS.has(view);
+  }
 
   function callOnUnlock(result) {
     if (typeof onUnlockCallback === "function") onUnlockCallback(result);
@@ -42,7 +46,7 @@
   }
 
   function requiresAuth(view) {
-    return view !== PUBLIC_VIEW;
+    return !isPublicView(view);
   }
 
   function canAccess(view) {
@@ -121,7 +125,8 @@
   }
 
   window.FRAGSiteAuth = {
-    PUBLIC_VIEW,
+    PUBLIC_VIEWS,
+    isPublicView,
     mount,
     isUnlocked,
     requiresAuth,

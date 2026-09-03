@@ -2675,3 +2675,126 @@ tfoot td.str {
     font-size: 0.9rem;
   }
 }
+
+/* SomethingLovely map */
+.somethinglovely-panel[hidden] {
+  display: none !important;
+}
+
+.somethinglovely-panel {
+  padding: 1rem 1.1rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.sl-head {
+  margin-bottom: 1rem;
+}
+
+.sl-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  letter-spacing: -0.03em;
+}
+
+.sl-title strong {
+  color: var(--accent-bright);
+}
+
+.sl-sub {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  max-width: 52rem;
+}
+
+.sl-map-wrap {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.18);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.sl-map-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sl-map-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.sl-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.sl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sl-btn:hover {
+  border-color: var(--border-strong);
+}
+
+.sl-btn--gold {
+  border-color: var(--border-strong);
+  color: var(--accent-bright);
+}
+
+.sl-map-frame {
+  display: block;
+  width: 100%;
+  height: min(72vh, 760px);
+  min-height: 420px;
+  border: 0;
+  background: #0d1117;
+}
+
+.sl-map-note {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border-top: 1px solid var(--border);
+}
+
+.sl-map-note code {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+}
+
+@media (max-width: 720px) {
+  .sl-map-frame {
+    height: min(58vh, 520px);
+    min-height: 280px;
+  }
+
+  .sl-map-actions {
+    width: 100%;
+  }
+
+  .sl-map-actions .sl-btn {
+    flex: 1;
+  }
+}

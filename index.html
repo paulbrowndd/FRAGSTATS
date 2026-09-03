@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260903a" />
+    <link rel="stylesheet" href="styles.css?v=20260903c" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -81,6 +81,9 @@
           </button>
           <button type="button" class="tab" data-view="edania-chests" role="tab" aria-selected="false">
             Edania II Chests
+          </button>
+          <button type="button" class="tab" data-view="somethinglovely" role="tab" aria-selected="false">
+            SomethingLovely
           </button>
         </div>
 
@@ -277,6 +280,31 @@
         <p class="ect-foot">FRAG · Edania II tracker · Data is stored only in this browser.</p>
       </section>
 
+      <section id="somethinglovely-panel" class="somethinglovely-panel panel" hidden aria-label="SomethingLovely BDO map">
+        <div class="sl-head">
+          <h2 class="sl-title">SomethingLovely <strong>BDO Map</strong></h2>
+          <p class="sl-sub">Famme's interactive world map — nodes, gathering, fishing, and more. The original somethinglovely.net site is offline; this is the open-source build hosted here.</p>
+        </div>
+        <section class="sl-map-wrap" aria-label="SomethingLovely map">
+          <div class="sl-map-head">
+            <h3 class="sl-map-title">World Map</h3>
+            <div class="sl-map-actions">
+              <a class="sl-btn" href="https://github.com/fffam/blackdesert-somethinglovely-map" target="_blank" rel="noopener">Source on GitHub</a>
+              <button type="button" class="sl-btn sl-btn--gold" id="sl-map-fullscreen">Fullscreen</button>
+            </div>
+          </div>
+          <iframe
+            id="sl-map-frame"
+            class="sl-map-frame"
+            title="SomethingLovely BDO map"
+            src="somethinglovely/index.html"
+            allow="fullscreen"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <p class="sl-map-note">If the map background is blank, map tiles still need to be installed once. Run <code>node tools/download-somethinglovely-tiles.js</code> from the FRAG repo, then republish.</p>
+        </section>
+      </section>
+
       <div id="stats-table-panel" class="table-scroll panel panel--table" role="region" aria-label="Node war statistics table">
         <table>
           <thead>
@@ -288,13 +316,13 @@
       </div>
     </div>
 
-    <script src="site-auth.js?v=20260903b"></script>
+    <script src="site-auth.js?v=20260903c"></script>
     <script src="guild.js?v=20260817a"></script>
     <script src="data.js"></script>
     <script src="siege-tickets.js"></script>
     <script src="class-rankings-data.js"></script>
     <script src="class-rankings.js?v=20260826a"></script>
     <script src="edania-chests.js?v=20260902j"></script>
-    <script src="app.js?v=20260903a"></script>
+    <script src="app.js?v=20260903c"></script>
   </body>
 </html>
