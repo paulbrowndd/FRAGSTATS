@@ -135,7 +135,7 @@ window.GUILD_MEMBER_TEAMS = {
   Deroxide: "Defense",
   Dragoneel: "Shotcaller, Support",
   DrShortstuf: "Support",
-  Eight76: "Shai, Support",
+  Eight76: "Support",
   Eight_0hFoe: "Ball",
   FleitesFamily: "Ball",
   FiveNine: "Ball",
