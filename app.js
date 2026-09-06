@@ -1102,12 +1102,19 @@
   /** Winners from each of the prior N months who are still on cooldown this month. */
   function getMvpCooldownExclusions(data, monthKey) {
     const excluded = new Set();
+    const cleared = new Set(
+      (window.GUILD_MVP_COOLDOWN_CLEARED || []).map((n) =>
+        String(canonicalFamilyName(n)).toLowerCase()
+      )
+    );
     let cursor = monthKey;
     for (let i = 0; i < getMvpCooldownMonths(); i++) {
       cursor = previousMonthKey(cursor);
       const winner = getMonthMvpWinner(data, cursor);
       if (!winner) continue;
-      excluded.add(String(canonicalFamilyName(winner)).toLowerCase());
+      const canon = String(canonicalFamilyName(winner)).toLowerCase();
+      if (cleared.has(canon)) continue;
+      excluded.add(canon);
     }
     return excluded;
   }

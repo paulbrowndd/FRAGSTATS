@@ -306,6 +306,11 @@ window.GUILD_MVP_WINNERS = {
 /** Months a member must wait after winning before they can win MVP again. */
 window.GUILD_MVP_COOLDOWN_MONTHS = 3;
 
+/** Members cleared to compete before their normal post-win cooldown ends. */
+window.GUILD_MVP_COOLDOWN_CLEARED = [
+  "Trooperr",
+];
+
 /** Recorded monthly Healer MVP winners (YYYY-MM). Separate track from combat MVP. */
 window.GUILD_HEALER_MVP_WINNERS = {};
 
