@@ -27,6 +27,7 @@ window.GUILD_ROSTER = [
   "Dragoneel",
   "DrShortstuf",
   "Eight76",
+  "Eight_0hFoe",
   "FleitesFamily",
   "FiveNine",
   "GainTrain",
@@ -133,6 +134,7 @@ window.GUILD_MEMBER_TEAMS = {
   Dragoneel: "Shotcaller, Support",
   DrShortstuf: "Support",
   Eight76: "Shai, Support",
+  Eight_0hFoe: "Ball",
   FleitesFamily: "Ball",
   FiveNine: "Ball",
   GainTrain: "Ball",
@@ -215,6 +217,7 @@ window.GUILD_MEMBER_TEAMS = {
 
 /** War result spelling → canonical roster name */
 window.GUILD_NAME_ALIASES = {
+  "Barbosas": "Barbosass",
   "Beighs": "Beights",
   "Brittainia": "Britannia",
   "CloudsRU": "CloudsRUs",
@@ -226,6 +229,7 @@ window.GUILD_NAME_ALIASES = {
   "Dalua_ShD": "Dalua_Shd",
   "Dalu_Shd": "Dalua_Shd",
   "DrShortstuff": "DrShortstuf",
+  "Eight_OhFoe": "Eight_0hFoe",
   "FletesFamily": "FleitesFamily",
   "Dragonjackfruit": "RealBanger",
   "Gaterkiller": "Deroxide",
