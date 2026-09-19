@@ -191,6 +191,7 @@ window.GUILD_NAME_ALIASES = {
   "IEthereall": "IEtherealI",
   "Ikaraswolf": "Ikaroswolf",
   "Inferno": "Infernorage",
+  "Intervention": "Interventionz",
   "ISlicel": "XSliceX",
   "iSlicel": "XSliceX",
   "Jed": "Dragoneel",
