@@ -249,10 +249,10 @@
   <div id="lb-credit">이미지 출처 : 검은사막 인벤 - 카나트 님</div>
 </div>
 
-<script src="https://www.korbdo.co.kr/Edania2/data/tiles.js?v=1786596824"></script>
-<script src="https://www.korbdo.co.kr/Edania2/data/markers.js?v=1787791907"></script>
-<script src="https://www.korbdo.co.kr/Edania2/data/images.js?v=1787724096"></script>
-<script src="https://www.korbdo.co.kr/Edania2/data/videos.js?v=1787724561"></script>
+<script src="https://www.korbdo.co.kr/map/Edania2/data/tiles.js?v=1786596824"></script>
+<script src="https://www.korbdo.co.kr/map/Edania2/data/markers.js?v=1787791908"></script>
+<script src="https://www.korbdo.co.kr/map/Edania2/data/images.js?v=1789527939"></script>
+<script src="https://www.korbdo.co.kr/map/Edania2/data/videos.js?v=1787724561"></script>
 <script>
 // index.html 과 같은 데이터/타일을 쓰되 에다니아 영역 밖으로 못 나가게 잠근 버전.
 // + 검색 / 습득 완료 체크(localStorage).
@@ -276,7 +276,13 @@ if (M.points && M.points.trace && window.IMAGES)
 const W = M.meta.world;
 const SECTOR = W.sector, TILE = W.tile;
 const WORLD_X0 = W.sx0 * SECTOR, WORLD_Z1 = (W.sz1 + 1) * SECTOR;
-const LEVELS = W.levels.slice().sort((a, b) => a - b);
+const LEVELS_ALL = W.levels.slice().sort((a, b) => a - b);
+// Only use zoom levels that actually have tile files listed (L8 is in meta but not shipped).
+const LEVELS = LEVELS_ALL.filter((l) => {
+  const list = TILES[l] || TILES[String(l)];
+  return Array.isArray(list) && list.length > 0;
+});
+if (!LEVELS.length) LEVELS.push(...LEVELS_ALL);
 
 const toU = wx => (wx - WORLD_X0) / SECTOR;
 const toV = wz => (WORLD_Z1 - wz) / SECTOR;
@@ -545,7 +551,7 @@ const VID = window.VIDEOS || {};                 // 마커별 공략 영상(유�
 const videoFor = p => VID[keyOf(p)] || '';
 // 이미지 파일 캐시버스터 — 이미지 교체 시 이 숫자만 올리면 새로 받는다.
 const IMGV = '1787730442';
-const KORBDO_BASE = 'https://www.korbdo.co.kr/Edania2/';
+const KORBDO_BASE = 'https://www.korbdo.co.kr/map/Edania2/';
 const imgURL = src => encodeURI(src.startsWith('http') ? src : KORBDO_BASE + src) + '?v=' + IMGV;
 
 // ── 볼 수 있는 범위 = 마커 전체를 감싸는 상자 + 여유
@@ -582,77 +588,83 @@ function tileImg(lvl, tx, ty) {
 }
 
 function pickLevel() {
-  // iPad/iPhone: stay on denser tile sets (≤32). Jumping to L64/L128 often
-  // leaves blank ocean because those tiles are sparse or still loading.
-  const touch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
-  const list = touch ? LEVELS.filter((l) => l <= 32) : LEVELS;
-  const levels = list.length ? list : LEVELS;
-  for (const l of levels) if (l >= view.k) return l;
-  return levels[levels.length - 1];
+  for (const l of LEVELS) if (l >= view.k) return l;
+  return LEVELS[LEVELS.length - 1];
 }
 
 const MAX_ZOOM = () => {
-  const touch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
-  // Allow slight overscale past L32 so pinch still feels zoomy without going blank.
-  if (touch) return 56;
   const hi = LEVELS.length ? LEVELS[LEVELS.length - 1] : 128;
-  return Math.max(hi, 256);
+  // Allow mild overscale past the finest listed level.
+  return Math.max(hi * 1.25, hi);
 };
 
 function tileReady(im) {
   return !!(im && im.complete && im.naturalWidth > 0);
 }
 
-/** Cover a high-zoom cell by cropping from the nearest loaded coarser tile. */
+function drawImageCover(im, destX, destY, destW, destH, sx0, sy0, sw, sh) {
+  if (!(destW > 0 && destH > 0 && sw > 0 && sh > 0)) return;
+  ctx.drawImage(im, sx0, sy0, sw, sh, destX, destY, destW, destH);
+}
+
+/** Draw one cell; if missing, crop from coarser tiles or composite finer ones. */
 function drawTileCell(lvl, tx, ty, span, px) {
   const destX = sx(tx * span);
   const destY = sy(ty * span);
 
-  // Kick off the preferred tile load, then search downward for anything drawable.
+  // 1) Exact tile
+  let im = tileImg(lvl, tx, ty);
+  if (tileReady(im)) {
+    ctx.drawImage(im, destX, destY, px + 1, px + 1);
+    return;
+  }
+
+  // 2) Coarser parents (upscale crop)
   let l = lvl;
   let stx = tx;
   let sty = ty;
-  tileImg(l, stx, sty);
-
   while (true) {
-    const im = cache.get(l + '/' + stx + '_' + sty);
-    if (tileReady(im)) {
-      const total = lvl / l;
-      if (total <= 1) {
-        ctx.drawImage(im, destX, destY, px + 1, px + 1);
-      } else {
-        const srcW = im.naturalWidth;
-        const cell = srcW / total;
-        const ox = tx - stx * total;
-        const oy = ty - sty * total;
-        if (cell > 0 && ox >= 0 && oy >= 0 && ox < total && oy < total) {
-          ctx.drawImage(
-            im,
-            ox * cell,
-            oy * cell,
-            cell,
-            cell,
-            destX,
-            destY,
-            px + 1,
-            px + 1
-          );
-        }
-      }
-      return;
-    }
-
-    // Still loading or missing — try parent level.
-    if (im === undefined) tileImg(l, stx, sty);
     const idx = LEVELS.indexOf(l);
-    if (idx <= 0) return;
+    if (idx <= 0) break;
     const parent = LEVELS[idx - 1];
     const step = l / parent;
     stx = Math.floor(stx / step);
     sty = Math.floor(sty / step);
     l = parent;
-    if (cache.get(l + '/' + stx + '_' + sty) === undefined) tileImg(l, stx, sty);
+    im = tileImg(l, stx, sty);
+    if (tileReady(im)) {
+      const total = lvl / l;
+      const cell = im.naturalWidth / total;
+      const ox = tx - stx * total;
+      const oy = ty - sty * total;
+      drawImageCover(im, destX, destY, px + 1, px + 1, ox * cell, oy * cell, cell, cell);
+      return;
+    }
   }
+
+  // 3) Finer children — fill gaps where coarse tiles were never generated
+  //    (Edania ships sparse L16/L32 but denser L64/L128 for the island edges).
+  let drew = false;
+  for (const fine of LEVELS) {
+    if (fine <= lvl) continue;
+    const ratio = fine / lvl;
+    if (!Number.isInteger(ratio) || ratio < 2) continue;
+    const sub = px / ratio;
+    let any = false;
+    for (let dy = 0; dy < ratio; dy++) {
+      for (let dx = 0; dx < ratio; dx++) {
+        const ftx = tx * ratio + dx;
+        const fty = ty * ratio + dy;
+        const fim = tileImg(fine, ftx, fty);
+        if (!tileReady(fim)) continue;
+        ctx.drawImage(fim, destX + dx * sub, destY + dy * sub, sub + 1, sub + 1);
+        any = true;
+        drew = true;
+      }
+    }
+    if (any) return; // prefer the coarsest finer level that has coverage
+  }
+  if (drew) return;
 }
 
 const sx = u => (u - view.u) * view.k + VW / 2;
