@@ -2346,7 +2346,20 @@ tfoot td.str {
   overflow: hidden;
   background: rgba(0, 0, 0, 0.18);
   touch-action: none;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ect-map-frame {
+  display: block;
+  width: 100%;
+  height: min(62vh, 560px);
+  min-height: 320px;
+  border: 0;
+  background: #183435;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .ect-map-head {
@@ -2376,16 +2389,6 @@ tfoot td.str {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-}
-
-.ect-map-frame {
-  display: block;
-  width: 100%;
-  height: min(62vh, 560px);
-  min-height: 320px;
-  border: 0;
-  background: #183435;
-  touch-action: none;
 }
 
 .ect-map-note {

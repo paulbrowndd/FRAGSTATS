@@ -582,35 +582,68 @@ function tileImg(lvl, tx, ty) {
 }
 
 function pickLevel() {
-  for (const l of LEVELS) if (l >= view.k) return l;      // 축소만, 확대는 안 함
-  return LEVELS[LEVELS.length - 1];
+  // iPad/iPhone: stay on denser tile sets (≤32). Jumping to L64/L128 often
+  // leaves blank ocean because those tiles are sparse or still loading.
+  const touch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
+  const list = touch ? LEVELS.filter((l) => l <= 32) : LEVELS;
+  const levels = list.length ? list : LEVELS;
+  for (const l of levels) if (l >= view.k) return l;
+  return levels[levels.length - 1];
 }
 
 const MAX_ZOOM = () => {
+  const touch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
+  // Allow slight overscale past L32 so pinch still feels zoomy without going blank.
+  if (touch) return 56;
   const hi = LEVELS.length ? LEVELS[LEVELS.length - 1] : 128;
-  return navigator.maxTouchPoints > 0 ? hi : Math.max(hi, 256);
+  return Math.max(hi, 256);
 };
 
+function tileReady(im) {
+  return !!(im && im.complete && im.naturalWidth > 0);
+}
+
+/** Cover a high-zoom cell by cropping from the nearest loaded coarser tile. */
 function drawTileCell(lvl, tx, ty, span, px) {
   const destX = sx(tx * span);
   const destY = sy(ty * span);
+
+  // Kick off the preferred tile load, then search downward for anything drawable.
   let l = lvl;
   let stx = tx;
   let sty = ty;
-  while (l) {
-    const im = tileImg(l, stx, sty);
-    if (im && im.complete && im.naturalWidth) {
+  tileImg(l, stx, sty);
+
+  while (true) {
+    const im = cache.get(l + '/' + stx + '_' + sty);
+    if (tileReady(im)) {
       const total = lvl / l;
       if (total <= 1) {
         ctx.drawImage(im, destX, destY, px + 1, px + 1);
       } else {
-        const cell = im.naturalWidth / total;
+        const srcW = im.naturalWidth;
+        const cell = srcW / total;
         const ox = tx - stx * total;
         const oy = ty - sty * total;
-        ctx.drawImage(im, ox * cell, oy * cell, cell, cell, destX, destY, px + 1, px + 1);
+        if (cell > 0 && ox >= 0 && oy >= 0 && ox < total && oy < total) {
+          ctx.drawImage(
+            im,
+            ox * cell,
+            oy * cell,
+            cell,
+            cell,
+            destX,
+            destY,
+            px + 1,
+            px + 1
+          );
+        }
       }
       return;
     }
+
+    // Still loading or missing — try parent level.
+    if (im === undefined) tileImg(l, stx, sty);
     const idx = LEVELS.indexOf(l);
     if (idx <= 0) return;
     const parent = LEVELS[idx - 1];
@@ -618,6 +651,7 @@ function drawTileCell(lvl, tx, ty, span, px) {
     stx = Math.floor(stx / step);
     sty = Math.floor(sty / step);
     l = parent;
+    if (cache.get(l + '/' + stx + '_' + sty) === undefined) tileImg(l, stx, sty);
   }
 }
 
@@ -638,10 +672,19 @@ function clamp() {
 
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  VW = innerWidth; VH = innerHeight;
-  cv.width = VW * DPR; cv.height = VH * DPR;
-  cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
-  clamp(); draw();
+  // iPad Safari: prefer the iframe/layout size, not a shifted visualViewport after pinch.
+  const vv = window.visualViewport;
+  const layoutW = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+  const layoutH = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+  VW = Math.round(layoutW) || Math.round(vv?.width || 0);
+  VH = Math.round(layoutH) || Math.round(vv?.height || 0);
+  if (VW < 2 || VH < 2) return;
+  cv.width = Math.max(1, Math.floor(VW * DPR));
+  cv.height = Math.max(1, Math.floor(VH * DPR));
+  cv.style.width = VW + 'px';
+  cv.style.height = VH + 'px';
+  clamp();
+  draw();
 }
 
 function draw() {
@@ -654,7 +697,12 @@ function draw() {
   const lvl = pickLevel();
   const span = TILE / lvl, px = span * view.k;
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = navigator.maxTouchPoints > 0 ? 'low' : 'high';
+  // Avoid Safari stalling on 'low' quality while upscaling parent tiles.
+  try {
+    ctx.imageSmoothingQuality = 'medium';
+  } catch (_) {
+    /* ignore */
+  }
   for (let ty = Math.floor(vy(0) / span); ty < Math.ceil(vy(VH) / span); ty++) {
     for (let tx = Math.floor(ux(0) / span); tx < Math.ceil(ux(VW) / span); tx++) {
       if (tx < 0 || ty < 0) continue;
@@ -1348,6 +1396,10 @@ addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('dragstart', e => e.preventDefault());
 
 addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 120));
+if (window.visualViewport) {
+  visualViewport.addEventListener('resize', resize);
+}
 // 전체화면 진입/해제 시 캔버스 백킹 스토어를 새 크기로 다시 잡아준다(안 하면 글씨/마커가 흐려짐).
 document.addEventListener('fullscreenchange', () => { resize(); setTimeout(resize, 80); });
 document.addEventListener('webkitfullscreenchange', () => { resize(); setTimeout(resize, 80); });
