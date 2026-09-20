@@ -336,7 +336,13 @@ const NEEDTAG = p => {
   const rom = ((LANG === 'en' ? p.needE : p.needL) || '').match(/[IVXLC]+$/);
   return rom ? T('needTag').replace('{n}', rom[0]) : '';
 };
+const NEWTAG = () => (LANG === 'en' ? 'New' : '신규');
+const withNew = (text, p) => (p && p.new ? `${text} ${NEWTAG()}` : text);
 const NM = p => (LANG === 'en' && p.ne) ? p.ne : p.n;
+const chestLabel = p => {
+  const base = p.rom ? `${KND(p.kind)} ${p.rom}` : NM(p);
+  return withNew(base, p);
+};
 const AR = p => (LANG === 'en' && p.ae) ? p.ae : (p.a || '');
 const LBL = id => (LANG === 'en' && LAYERS_EN[id]) ? LAYERS_EN[id]
                                                    : M.meta.layers[id].label;
@@ -758,7 +764,7 @@ function draw() {
       //  두 줄 라벨이라 축소하면 주변 글자와 뒤엉켜 지저분해지기 때문.
       if (p.needL && view.k < NEED_TAG_ZOOM) continue;
       // 번호가 없는 지점(버그 상자 등)은 이름을 그대로 쓴다
-      labels.push({ p, t: p.rom ? `${KND(p.kind)} ${p.rom}` : NM(p),
+      labels.push({ p, t: chestLabel(p),
                     t2: p.needL ? NEEDTAG(p) : '',      // 선행 표시는 한 줄 아래에
                     col: (p.new && NEWTXT[id]) ? NEWTXT[id] : col, dy });
     }
@@ -847,7 +853,7 @@ function placeSel() {
 
 function select(p, id) {
   sel = { p, id };
-  document.getElementById('sel-t').textContent = NM(p);
+  document.getElementById('sel-t').textContent = withNew(NM(p), p);
   const base = CHEST.includes(id) ? `${AR(p)}${p.card ? ' · ' + T('know') + ' ' + p.card : ''}`
                                   : (p.quests ? `${LBL(id)} · ${AR(p)}` : `${LBL(id)}`);
   const coin = CHEST.includes(id) ? coinOf(p, id) : (p.quests ? (p.coin || 0) : null);
@@ -1280,7 +1286,7 @@ function search() {
     const d = document.createElement('div');
     d.className = isDone(h.p) ? 'it off' : 'it';
     d.innerHTML = `<span class="dot" style="background:${M.meta.layers[h.id].color}"></span>` +
-      `<span>${NM(h.p)}</span><span class="a">${AR(h.p)}</span>`;
+      `<span>${CHEST.includes(h.id) ? chestLabel(h.p) : withNew(NM(h.p), h.p)}</span><span class="a">${AR(h.p)}</span>`;
     d.onclick = () => { focusPoint(h.p, h.id); draw(); };
     hits.appendChild(d);
   }
