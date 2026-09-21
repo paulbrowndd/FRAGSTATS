@@ -485,7 +485,9 @@ window.GUILD_MEMBER_BALL_ROLES = {
 };
 
 /** Optional manual MVP exclusions (rare). Normal repeat rule is the cooldown below. */
-window.GUILD_MVP_EXCLUDED = [];
+window.GUILD_MVP_EXCLUDED = [
+  "Trooperr", // left guild; war stats kept
+];
 
 /** Recorded monthly MVP winners (YYYY-MM). Used for repeat-win exclusion and analysis history. */
 window.GUILD_MVP_WINNERS = {
