@@ -1,6 +1,9 @@
 (function () {
   const COLS = [
     { key: "familyName", label: "Family name", type: "text" },
+    { key: "className", label: "Class", type: "text" },
+    { key: "spec", label: "Spec", type: "text" },
+    { key: "ballRole", label: "Role in Ball", type: "text" },
     { key: "enemyKills", label: "Enemy kills", type: "num" },
     { key: "deaths", label: "Deaths", type: "num" },
     { key: "maxKillStreak", label: "Max kill streak", type: "num" },
@@ -42,6 +45,9 @@
   const ATTENDANCE_COLS = [
     { key: "familyName", label: "Family name", type: "text" },
     { key: "team", label: "Team", type: "text" },
+    { key: "className", label: "Class", type: "text" },
+    { key: "spec", label: "Spec", type: "text" },
+    { key: "ballRole", label: "Role in Ball", type: "text" },
     { key: "nodeWars", label: "Node wars", type: "num" },
     { key: "siege", label: "Siege", type: "num" },
   ];
@@ -69,6 +75,7 @@
   const healerMvpLeaderboard = document.getElementById("healer-mvp-leaderboard");
   const attendancePanel = document.getElementById("attendance-panel");
   const teamFiltersEl = document.getElementById("team-filters");
+  const ballRoleFiltersEl = document.getElementById("ball-role-filters");
   const warAnalysisPanel = document.getElementById("war-analysis-panel");
   const warAnalysisSub = document.getElementById("war-analysis-sub");
   const warAnalysisFormula = document.getElementById("war-analysis-formula");
@@ -197,6 +204,8 @@
   let sortDir = "asc";
   /** Empty = all teams; otherwise show rows matching any selected team. */
   let selectedTeamFilters = new Set();
+  /** Empty = all ball roles; otherwise show rows matching any selected Role in Ball. */
+  let selectedBallRoleFilters = new Set();
   /** Canonical player names excluded from average calculations (still shown in table). */
   let excludedPlayers = new Set();
   /** Last rendered visible rows — used for check-all. */
@@ -213,6 +222,15 @@
     "Ball",
     "Defense",
     "Sailor",
+  ];
+
+  const BALL_ROLE_FILTER_ORDER = [
+    "Frontline",
+    "Flanker",
+    "Backline",
+    "Range",
+    "Shai",
+    "Shotcaller",
   ];
 
   let rosterIndex = null;
@@ -243,6 +261,9 @@
     );
     return [
       { key: "familyName", label: "Family name", type: "text" },
+      { key: "className", label: "Class", type: "text" },
+      { key: "spec", label: "Spec", type: "text" },
+      { key: "ballRole", label: "Role in Ball", type: "text" },
       { key: "score", label: "Overall score", type: "pct" },
       { key: "attendance", label: "Attendance", type: "num" },
       ...analysisOrder.map((key) => mvpByKey.get(key)),
@@ -314,6 +335,31 @@
       .filter(Boolean);
   }
 
+  function getMemberClass(name) {
+    const map = window.GUILD_MEMBER_CLASS;
+    return map && typeof map === "object" ? map[name] || "" : "";
+  }
+
+  function getMemberSpec(name) {
+    const map = window.GUILD_MEMBER_SPEC;
+    return map && typeof map === "object" ? map[name] || "" : "";
+  }
+
+  function getMemberBallRole(name) {
+    const map = window.GUILD_MEMBER_BALL_ROLES;
+    return map && typeof map === "object" ? map[name] || "" : "";
+  }
+
+  function enrichRosterFields(row) {
+    const canon = resolveGuildName(row.familyName) || row.familyName;
+    return {
+      ...row,
+      className: getMemberClass(canon) || "—",
+      spec: getMemberSpec(canon) || "—",
+      ballRole: getMemberBallRole(canon) || "—",
+    };
+  }
+
   function memberHasTeam(name, team) {
     return getMemberTeams(name).includes(team);
   }
@@ -342,9 +388,25 @@
     return assigned.some((team) => selectedTeamFilters.has(team));
   }
 
+  function rowMatchesBallRoleFilter(familyName) {
+    if (!selectedBallRoleFilters.size) return true;
+    const canon = resolveGuildName(familyName) || familyName;
+    const role = getMemberBallRole(canon) || "Unassigned";
+    return selectedBallRoleFilters.has(role);
+  }
+
   function applyTeamFilter(rows) {
     if (!selectedTeamFilters.size) return rows;
     return rows.filter((r) => rowMatchesTeamFilter(r.familyName));
+  }
+
+  function applyBallRoleFilter(rows) {
+    if (!selectedBallRoleFilters.size) return rows;
+    return rows.filter((r) => rowMatchesBallRoleFilter(r.familyName));
+  }
+
+  function applyRosterFilters(rows) {
+    return applyBallRoleFilter(applyTeamFilter(rows));
   }
 
   function formatPlayerCountText(filteredCount, totalCount, unit) {
@@ -352,12 +414,22 @@
       filteredCount === totalCount
         ? `${totalCount} ${unit}`
         : `${filteredCount} of ${totalCount} ${unit}`;
+    const bits = [];
     if (selectedTeamFilters.size) {
-      const teams = [...selectedTeamFilters]
-        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
-        .join(", ");
-      text += ` · ${teams}`;
+      bits.push(
+        [...selectedTeamFilters]
+          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+          .join(", ")
+      );
     }
+    if (selectedBallRoleFilters.size) {
+      bits.push(
+        [...selectedBallRoleFilters]
+          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+          .join(", ")
+      );
+    }
+    if (bits.length) text += ` · ${bits.join(" · ")}`;
     return text;
   }
 
@@ -378,6 +450,37 @@
       ? `<button type="button" class="team-filter-clear" id="team-filter-clear">Clear</button>`
       : "";
     teamFiltersEl.innerHTML = `<span class="team-filters-label">Teams</span>${chips}${clearBtn}`;
+  }
+
+  function getKnownBallRolesFromRoster() {
+    const roles = new Set();
+    for (const name of getGuildRoster()) {
+      const role = getMemberBallRole(name);
+      roles.add(role || "Unassigned");
+    }
+    const extra = [...roles]
+      .filter((role) => !BALL_ROLE_FILTER_ORDER.includes(role))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    return [...BALL_ROLE_FILTER_ORDER.filter((role) => roles.has(role)), ...extra];
+  }
+
+  function renderBallRoleFilters() {
+    if (!ballRoleFiltersEl) return;
+    const roles = getKnownBallRolesFromRoster();
+    const chips = roles
+      .map((role) => {
+        const checked = selectedBallRoleFilters.has(role);
+        const roleClass = teamCssClass(role);
+        return `<label class="team-filter team-filter--ball-role team-filter--${roleClass}${checked ? " team-filter--active" : ""}">
+          <input type="checkbox" class="ball-role-filter-input" value="${escapeHtml(role)}"${checked ? " checked" : ""} />
+          <span>${escapeHtml(role)}</span>
+        </label>`;
+      })
+      .join("");
+    const clearBtn = selectedBallRoleFilters.size
+      ? `<button type="button" class="team-filter-clear" id="ball-role-filter-clear">Clear</button>`
+      : "";
+    ballRoleFiltersEl.innerHTML = `<span class="team-filters-label">Role in Ball</span>${chips}${clearBtn}`;
   }
 
   function teamCssClass(team) {
@@ -673,6 +776,9 @@
     const rows = getGuildRoster().map((name) => ({
       familyName: name,
       team: getMemberTeam(name) || "—",
+      className: getMemberClass(name) || "—",
+      spec: getMemberSpec(name) || "—",
+      ballRole: getMemberBallRole(name) || "—",
       nodeWars: 0,
       siege: 0,
     }));
@@ -756,8 +862,10 @@
   }
 
   function colsWithAttendanceStats() {
-    const [familyCol, ...rest] = COLS;
-    return [familyCol, ...ATTENDANCE_STAT_COLS, ...rest];
+    const identityKeys = new Set(["familyName", "className", "spec", "ballRole"]);
+    const identity = COLS.filter((c) => identityKeys.has(c.key));
+    const rest = COLS.filter((c) => !identityKeys.has(c.key));
+    return [...identity, ...ATTENDANCE_STAT_COLS, ...rest];
   }
 
   function getActiveCols() {
@@ -1281,7 +1389,13 @@
   }
 
   function shouldShowColumnAverage(colDef) {
-    return colDef.key !== "familyName" && colDef.key !== "team";
+    return (
+      colDef.key !== "familyName" &&
+      colDef.key !== "team" &&
+      colDef.key !== "className" &&
+      colDef.key !== "spec" &&
+      colDef.key !== "ballRole"
+    );
   }
 
   function formatAverageForCol(mean, colDef) {
@@ -1716,6 +1830,9 @@
     switch (colDef.key) {
       case "familyName":
       case "team":
+      case "className":
+      case "spec":
+      case "ballRole":
         return String(v || "").toLowerCase();
       case "timeDead":
       case "timeSurvived":
@@ -2058,6 +2175,12 @@
         if (c.key === "familyName") {
           return `<td class="${cls}">${formatFamilyNameCellWithInclude(v)}</td>`;
         }
+        if (c.key === "ballRole" && v && v !== "—") {
+          return `<td class="${cls}"><span class="player-ball-role player-ball-role--${teamCssClass(v)}">${escapeHtml(String(v))}</span></td>`;
+        }
+        if (c.key === "className" || c.key === "spec" || c.key === "ballRole") {
+          return `<td class="${cls}">${escapeHtml(String(v ?? "—"))}</td>`;
+        }
         if (c.type === "pct") {
           return `<td class="pct">${statValueWithAvg(v, c, avgByCol)}</td>`;
         }
@@ -2133,13 +2256,22 @@
     }
 
     const q = (search.value || "").trim().toLowerCase();
-    const teamFiltered = applyTeamFilter(rows);
+    const teamFiltered = applyRosterFilters(rows);
     const total = teamFiltered.length;
     let filtered = q
       ? teamFiltered.filter((r) => {
           const name = String(r.familyName).toLowerCase();
           const team = String(r.team || "").toLowerCase();
-          return name.includes(q) || team.includes(q);
+          const klass = String(r.className || "").toLowerCase();
+          const spec = String(r.spec || "").toLowerCase();
+          const ball = String(r.ballRole || "").toLowerCase();
+          return (
+            name.includes(q) ||
+            team.includes(q) ||
+            klass.includes(q) ||
+            spec.includes(q) ||
+            ball.includes(q)
+          );
         })
       : teamFiltered.slice();
     filtered = sortRowsInPlace(filtered);
@@ -2149,7 +2281,7 @@
     if (!filtered.length) {
       lastVisibleRows = [];
       const emptyMsg =
-        q || selectedTeamFilters.size
+        q || selectedTeamFilters.size || selectedBallRoleFilters.size
           ? "No matching players for the current filters."
           : "No matching family names.";
       tbody.innerHTML = `<tr><td colspan="${ATTENDANCE_COLS.length}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
@@ -2179,7 +2311,10 @@
           if (c.key === "team" && v && v !== "—") {
             return `<td class="${cls}">${formatTeamBadges(getMemberTeams(r.familyName))}</td>`;
           }
-          if (c.key === "team") {
+          if (c.key === "ballRole" && v && v !== "—") {
+            return `<td class="${cls}"><span class="player-ball-role player-ball-role--${teamCssClass(v)}">${escapeHtml(String(v))}</span></td>`;
+          }
+          if (c.key === "team" || c.key === "className" || c.key === "spec" || c.key === "ballRole") {
             return `<td class="${cls}">${escapeHtml(String(v ?? ""))}</td>`;
           }
           const mark =
@@ -2200,6 +2335,9 @@
     tfoot.innerHTML = `<tr>
       <td>Averages (${avgN})</td>
       <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
       <td class="num">${avgN ? escapeHtml(formatAvgNumber(totalNode / avgN)) : "—"}</td>
       <td class="num">${avgN ? escapeHtml(formatAvgNumber(totalSiege / avgN)) : "—"}</td>
     </tr>`;
@@ -2218,17 +2356,20 @@
     metaEl.textContent = meta;
 
     const guildFiltered = filterGuildRows(rows);
-    const teamFiltered = applyTeamFilter(guildFiltered);
+    const teamFiltered = applyRosterFilters(guildFiltered);
     const ranked = computeMvpScores(teamFiltered);
     renderWarAnalysisPanel(ranked, meta, data);
 
-    const analysisRows = rankedToAnalysisRows(ranked, teamFiltered);
+    const analysisRows = rankedToAnalysisRows(ranked, teamFiltered).map(enrichRosterFields);
     const q = (search.value || "").trim().toLowerCase();
     const total = analysisRows.length;
     const filtered = q
-      ? analysisRows.filter((r) =>
-          String(r.familyName).toLowerCase().includes(q)
-        )
+      ? analysisRows.filter((r) => {
+          const hay = [r.familyName, r.className, r.spec, r.ballRole]
+            .map((x) => String(x || "").toLowerCase())
+            .join(" ");
+          return hay.includes(q);
+        })
       : analysisRows.slice();
 
     countEl.textContent = formatPlayerCountText(filtered.length, total, "players");
@@ -2237,7 +2378,7 @@
     if (!filtered.length) {
       lastVisibleRows = [];
       const emptyMsg = total
-        ? q || selectedTeamFilters.size
+        ? q || selectedTeamFilters.size || selectedBallRoleFilters.size
           ? "No matching players for the current filters."
           : "No matching family names."
         : "No war data for this period.";
@@ -2331,7 +2472,7 @@
     const guildFiltered = filterGuildRows(rows);
     renderMvpSection(guildFiltered);
 
-    const teamFiltered = applyTeamFilter(guildFiltered);
+    const teamFiltered = applyRosterFilters(guildFiltered).map(enrichRosterFields);
     const q = (search.value || "").trim().toLowerCase();
     const total = teamFiltered.length;
     let filtered = q
@@ -2340,7 +2481,16 @@
           const team = getMemberTeams(resolveGuildName(r.familyName) || r.familyName)
             .join(" ")
             .toLowerCase();
-          return name.includes(q) || team.includes(q);
+          const klass = String(r.className || "").toLowerCase();
+          const spec = String(r.spec || "").toLowerCase();
+          const ball = String(r.ballRole || "").toLowerCase();
+          return (
+            name.includes(q) ||
+            team.includes(q) ||
+            klass.includes(q) ||
+            spec.includes(q) ||
+            ball.includes(q)
+          );
         })
       : teamFiltered.slice();
     filtered = sortRowsInPlace(filtered);
@@ -2350,7 +2500,7 @@
     if (!filtered.length) {
       lastVisibleRows = [];
       const emptyMsg =
-        q || selectedTeamFilters.size
+        q || selectedTeamFilters.size || selectedBallRoleFilters.size
           ? "No matching players for the current filters."
           : "No matching family names.";
       tbody.innerHTML = `<tr><td colspan="${getActiveCols().length}" class="empty">${escapeHtml(emptyMsg)}</td></tr>`;
@@ -2377,6 +2527,12 @@
           const cls = c.type === "text" ? "" : c.type;
           if (c.key === "familyName") {
             return `<td class="${cls}">${formatFamilyNameCellWithInclude(v)}</td>`;
+          }
+          if (c.key === "ballRole" && v && v !== "—") {
+            return `<td class="${cls}"><span class="player-ball-role player-ball-role--${teamCssClass(v)}">${escapeHtml(String(v))}</span></td>`;
+          }
+          if (c.key === "className" || c.key === "spec" || c.key === "ballRole") {
+            return `<td class="${cls}">${escapeHtml(String(v ?? "—"))}</td>`;
           }
           if (
             (c.key === "nodeWar" || c.key === "siege") &&
@@ -2518,6 +2674,7 @@
     populateMonthSelect();
     updateScopeVisibility();
     renderTeamFilters();
+    renderBallRoleFilters();
 
     const data = getWarData();
     const keys = sortedDateKeys(data);
@@ -2580,6 +2737,25 @@
         if (e.target.id === "team-filter-clear") {
           selectedTeamFilters.clear();
           renderTeamFilters();
+          renderBody();
+        }
+      });
+    }
+
+    if (ballRoleFiltersEl) {
+      ballRoleFiltersEl.addEventListener("change", (e) => {
+        const input = e.target.closest(".ball-role-filter-input");
+        if (input) {
+          const role = input.value;
+          if (input.checked) selectedBallRoleFilters.add(role);
+          else selectedBallRoleFilters.delete(role);
+          renderBallRoleFilters();
+          renderBody();
+          return;
+        }
+        if (e.target.id === "ball-role-filter-clear") {
+          selectedBallRoleFilters.clear();
+          renderBallRoleFilters();
           renderBody();
         }
       });

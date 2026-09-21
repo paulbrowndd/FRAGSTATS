@@ -1629,6 +1629,80 @@ tbody td.str {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+.ball-role-filters {
+  margin-top: 0.15rem;
+}
+
+.team-filter--frontline > span {
+  color: #f5b8a8;
+  background: rgba(180, 60, 40, 0.22);
+  border-color: rgba(200, 90, 60, 0.35);
+}
+
+.team-filter--flanker > span {
+  color: #a8e0f5;
+  background: rgba(40, 120, 160, 0.22);
+  border-color: rgba(70, 150, 190, 0.35);
+}
+
+.team-filter--backline > span {
+  color: #d4b8f5;
+  background: rgba(100, 60, 160, 0.22);
+  border-color: rgba(130, 90, 190, 0.35);
+}
+
+.team-filter--range > span {
+  color: #f5e6a8;
+  background: rgba(160, 140, 40, 0.22);
+  border-color: rgba(190, 170, 60, 0.35);
+}
+
+.player-ball-role {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.player-ball-role--frontline {
+  color: #f5b8a8;
+  background: rgba(180, 60, 40, 0.22);
+  border-color: rgba(200, 90, 60, 0.35);
+}
+
+.player-ball-role--flanker {
+  color: #a8e0f5;
+  background: rgba(40, 120, 160, 0.22);
+  border-color: rgba(70, 150, 190, 0.35);
+}
+
+.player-ball-role--backline {
+  color: #d4b8f5;
+  background: rgba(100, 60, 160, 0.22);
+  border-color: rgba(130, 90, 190, 0.35);
+}
+
+.player-ball-role--range {
+  color: #f5e6a8;
+  background: rgba(160, 140, 40, 0.22);
+  border-color: rgba(190, 170, 60, 0.35);
+}
+
+.player-ball-role--shai {
+  color: #f0b8e0;
+  background: rgba(160, 50, 120, 0.22);
+  border-color: rgba(190, 80, 150, 0.35);
+}
+
+.player-ball-role--shotcaller {
+  color: #ffe08a;
+  background: rgba(180, 140, 20, 0.25);
+  border-color: rgba(210, 170, 40, 0.4);
+}
+
 .team-filter-clear {
   cursor: pointer;
   font: inherit;
