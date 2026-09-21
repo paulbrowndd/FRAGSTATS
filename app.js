@@ -1678,7 +1678,8 @@
 
     const ranked = computeMvpScores(guildRows);
     const cooldown = monthKey ? getMvpCooldownExclusions(data, monthKey) : new Set();
-    const eligible = mvpEligibleEntries(ranked, cooldown);
+    const exclude = new Set([...cooldown, ...getMvpExcludedSet()]);
+    const eligible = mvpEligibleEntries(ranked, exclude);
 
     const recorded = monthKey ? getRecordedMvpWinner(monthKey) : null;
     let winner = null;
@@ -1729,7 +1730,8 @@
 
     const healerRanked = computeHealerMvpScores(guildRows);
     const healerCooldown = monthKey ? getHealerMvpCooldownExclusions(data, monthKey) : new Set();
-    const healerEligible = mvpEligibleEntries(healerRanked, healerCooldown);
+    const healerExclude = new Set([...healerCooldown, ...getMvpExcludedSet()]);
+    const healerEligible = mvpEligibleEntries(healerRanked, healerExclude);
     const healerRecorded = monthKey ? getRecordedHealerMvpWinner(monthKey) : null;
     let healerWinner = null;
     if (healerRecorded) {
