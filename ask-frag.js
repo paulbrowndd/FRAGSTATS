@@ -1001,7 +1001,8 @@
     const stat = detectStat(q);
     if (stat || /\b(top|bottom|lowest|highest|most|least|best|worst)\b/.test(q)) {
       let key = stat || "enemyKills";
-      if (/\b(best|highest|most)\s+kd\b/.test(q) || /\bk\/?d\b/.test(q)) key = "kd";
+      if (!stat && /\bhealers?\b/.test(q)) key = "healing";
+      if (/\b(best|highest|most)\s+kd\b/.test(q) || (/\bk\/?d\b/.test(q) && !stat)) key = "kd";
       const bottom =
         /\b(bottom|lowest|least|fewest|worst)\b/.test(q) &&
         !/\b(least\s+deaths|fewest\s+deaths|lowest\s+deaths)\b/.test(q);
