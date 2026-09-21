@@ -39,7 +39,6 @@
     CLASS_RANKINGS: "class-rankings",
     EDANIA_CHESTS: "edania-chests",
     BINGO_BOOK: "bingo-book",
-    ASK_FRAG: "ask-frag",
   };
 
   const ATTENDANCE_COLS = [
@@ -85,7 +84,6 @@
   const classRankingsPanel = document.getElementById("class-rankings-panel");
   const edaniaChestsPanel = document.getElementById("edania-chests-panel");
   const bingoBookPanel = document.getElementById("bingo-book-panel");
-  const askFragPanel = document.getElementById("ask-frag-panel");
   const statsTablePanel = document.getElementById("stats-table-panel");
   const toolbarPanel = document.getElementById("toolbar-panel");
   const siteAuthLockBtn = document.getElementById("site-auth-lock");
@@ -138,7 +136,6 @@
     if (classRankingsPanel) classRankingsPanel.hidden = true;
     if (edaniaChestsPanel) edaniaChestsPanel.hidden = true;
     if (bingoBookPanel) bingoBookPanel.hidden = true;
-    if (askFragPanel) askFragPanel.hidden = true;
     if (mvpSection) mvpSection.hidden = true;
     if (warAnalysisPanel) warAnalysisPanel.hidden = true;
     if (attendancePanel) attendancePanel.hidden = true;
@@ -1997,15 +1994,13 @@
       view === VIEW.SIEGE_TICKETS ||
       view === VIEW.CLASS_RANKINGS ||
       view === VIEW.EDANIA_CHESTS ||
-      view === VIEW.BINGO_BOOK ||
-      view === VIEW.ASK_FRAG;
+      view === VIEW.BINGO_BOOK;
     if (statsTablePanel) statsTablePanel.hidden = standalone;
     if (toolbarPanel) toolbarPanel.hidden = standalone;
     if (siegeTicketsPanel) siegeTicketsPanel.hidden = view !== VIEW.SIEGE_TICKETS;
     if (classRankingsPanel) classRankingsPanel.hidden = view !== VIEW.CLASS_RANKINGS;
     if (edaniaChestsPanel) edaniaChestsPanel.hidden = view !== VIEW.EDANIA_CHESTS;
     if (bingoBookPanel) bingoBookPanel.hidden = view !== VIEW.BINGO_BOOK;
-    if (askFragPanel) askFragPanel.hidden = view !== VIEW.ASK_FRAG;
   }
 
   function renderClassRankingsTabBody() {
@@ -2030,14 +2025,6 @@
     metaEl.textContent = "The Bingo Book · FRAG blacklist ledger";
     countEl.textContent = "";
     if (window.FRAGBingoBook) window.FRAGBingoBook.render();
-  }
-
-  function renderAskFragTabBody() {
-    hideStatsPanels();
-    setMainViewChrome(VIEW.ASK_FRAG);
-    metaEl.textContent = "Ask FRAG · Officer reports from logged wars";
-    countEl.textContent = "";
-    if (window.FRAGAsk) window.FRAGAsk.render();
   }
 
   function renderSiegeTicketsTabBody() {
@@ -2446,11 +2433,6 @@
       return;
     }
 
-    if (currentView === VIEW.ASK_FRAG) {
-      renderAskFragTabBody();
-      return;
-    }
-
     setMainViewChrome(currentView);
 
     if (currentView === VIEW.ATTENDANCE) {
@@ -2628,7 +2610,6 @@
     const classRankings = currentView === VIEW.CLASS_RANKINGS;
     const edaniaChests = currentView === VIEW.EDANIA_CHESTS;
     const bingoBook = currentView === VIEW.BINGO_BOOK;
-    const askFrag = currentView === VIEW.ASK_FRAG;
 
     dateField.hidden = !daily;
     weekField.hidden = !weekly && !attendance;
@@ -2638,7 +2619,6 @@
       classRankings ||
       edaniaChests ||
       bingoBook ||
-      askFrag ||
       (!daily && !weekly && !monthly && !attendance);
 
     weekField.classList.toggle("field--scope-inactive", attendance && attendanceScopeMode !== "week");
@@ -2815,10 +2795,6 @@
 
     if (bingoBookPanel && window.FRAGBingoBook) {
       window.FRAGBingoBook.mount(bingoBookPanel);
-    }
-
-    if (askFragPanel && window.FRAGAsk) {
-      window.FRAGAsk.mount(askFragPanel);
     }
   }
 
