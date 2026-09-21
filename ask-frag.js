@@ -279,22 +279,129 @@
       .sort((a, b) => b.month.localeCompare(a.month));
   }
 
+  const MONTH_NAMES = {
+    january: 1,
+    jan: 1,
+    february: 2,
+    feb: 2,
+    march: 3,
+    mar: 3,
+    april: 4,
+    apr: 4,
+    may: 5,
+    june: 6,
+    jun: 6,
+    july: 7,
+    jul: 7,
+    august: 8,
+    aug: 8,
+    september: 9,
+    sept: 9,
+    sep: 9,
+    october: 10,
+    oct: 10,
+    november: 11,
+    nov: 11,
+    december: 12,
+    dec: 12,
+  };
+
+  function defaultYearFromData(data) {
+    const keys = sortedDateKeys(data);
+    if (keys.length) return Number(keys[keys.length - 1].slice(0, 4));
+    return new Date().getUTCFullYear();
+  }
+
+  function isoFromParts(year, month, day) {
+    const dt = new Date(Date.UTC(year, month - 1, day));
+    if (dt.getUTCFullYear() !== year || dt.getUTCMonth() !== month - 1 || dt.getUTCDate() !== day) {
+      return null;
+    }
+    return toIsoUTC(dt);
+  }
+
+  /** Parse calendar dates from natural language ("september 19th", "9/19/2026", "2026-09-19"). */
+  function parseCalendarDate(q, data) {
+    const isoHit = q.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+    if (isoHit) return `${isoHit[1]}-${isoHit[2]}-${isoHit[3]}`;
+
+    const slash = q.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?\b/);
+    if (slash) {
+      const year = slash[3] ? Number(slash[3]) : defaultYearFromData(data);
+      return isoFromParts(year, Number(slash[1]), Number(slash[2]));
+    }
+
+    const named = q.match(
+      /\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(20\d{2}))?\b/i
+    );
+    if (named) {
+      const month = MONTH_NAMES[named[1].toLowerCase()];
+      const day = Number(named[2]);
+      const year = named[3] ? Number(named[3]) : defaultYearFromData(data);
+      return isoFromParts(year, month, day);
+    }
+    return null;
+  }
+
+  function datesForWeekContaining(data, iso) {
+    const sunday = sundayOfWeekUTC(iso);
+    const sat = saturdayOfWeekUTC(sunday);
+    return {
+      sunday,
+      dateKeys: sortedDateKeys(data).filter((d) => d >= sunday && d <= sat),
+      label: `week of ${formatShortDate(iso)} (${formatShortDate(sunday)} – ${formatShortDate(sat)})`,
+    };
+  }
+
   function resolvePeriod(data, period) {
     const keys = sortedDateKeys(data);
-    if (!keys.length) return { dateKeys: [], label: "no data", kind: period };
+    if (!keys.length) return { dateKeys: [], label: "no data", kind: "empty" };
 
-    if (period === "today" || period === "daily") {
+    const spec = typeof period === "object" && period ? period : { kind: period || "week" };
+
+    if (spec.kind === "week_of" && spec.iso) {
+      const week = datesForWeekContaining(data, spec.iso);
+      return {
+        dateKeys: week.dateKeys,
+        label: week.label,
+        kind: "week",
+        sunday: week.sunday,
+      };
+    }
+    if (spec.kind === "day" && spec.iso) {
+      const has = keys.includes(spec.iso);
+      return {
+        dateKeys: has ? [spec.iso] : [],
+        label: formatShortDate(spec.iso),
+        kind: "daily",
+        sunday: sundayOfWeekUTC(spec.iso),
+      };
+    }
+    if (spec.kind === "month_of" && (spec.iso || spec.month)) {
+      const month = spec.month || monthKeyUTC(spec.iso);
+      const dateKeys = keys.filter((d) => monthKeyUTC(d) === month);
+      return {
+        dateKeys,
+        label: formatMonthLabel(month),
+        kind: "month",
+        month,
+      };
+    }
+
+    const kind = spec.kind || "week";
+
+    if (kind === "today" || kind === "daily") {
       const dk = keys[keys.length - 1];
       return { dateKeys: [dk], label: formatShortDate(dk), kind: "daily", sunday: sundayOfWeekUTC(dk) };
     }
-    if (period === "lifetime" || period === "all") {
+    if (kind === "lifetime" || kind === "all") {
       return {
         dateKeys: keys,
         label: `all logged wars (${formatShortDate(keys[0])} – ${formatShortDate(keys[keys.length - 1])})`,
         kind: "lifetime",
       };
     }
-    if (period === "last_week") {
+    if (kind === "last_week") {
       const weeks = uniqueWeekStarts(data);
       const week = weeks[1] || weeks[0];
       if (!week) return { dateKeys: [], label: "no week", kind: "week" };
@@ -305,7 +412,7 @@
         sunday: week.sunday,
       };
     }
-    if (period === "last_month") {
+    if (kind === "last_month") {
       const months = uniqueMonths(data);
       const month = months[1] || months[0];
       if (!month) return { dateKeys: [], label: "no month", kind: "month" };
@@ -316,7 +423,7 @@
         month: month.month,
       };
     }
-    if (period === "month" || period === "this_month") {
+    if (kind === "month" || kind === "this_month") {
       const months = uniqueMonths(data);
       const month = months[0];
       if (!month) return { dateKeys: [], label: "no month", kind: "month" };
@@ -338,14 +445,125 @@
     };
   }
 
-  function detectPeriod(q) {
-    if (/\b(last\s+week|previous\s+week)\b/.test(q)) return "last_week";
-    if (/\b(last\s+month|previous\s+month)\b/.test(q)) return "last_month";
-    if (/\b(this\s+month|monthly)\b/.test(q)) return "month";
-    if (/\b(today|yesterday|daily|this\s+day|latest\s+war|last\s+war)\b/.test(q)) return "today";
-    if (/\b(lifetime|all\s+time|all\s+wars|ever|career)\b/.test(q)) return "lifetime";
-    if (/\b(this\s+week|weekly|sun.?sat)\b/.test(q)) return "week";
-    return "week";
+  function detectPeriod(q, data) {
+    const iso = parseCalendarDate(q, data);
+
+    if (iso) {
+      if (/\b(month\s+of|for\s+the\s+month)\b/.test(q)) {
+        return { kind: "month_of", iso };
+      }
+      if (
+        /\b(week\s+of|for\s+the\s+week|during\s+the\s+week)\b/.test(q) ||
+        (/\bweek\b/.test(q) && !/\b(this|last|next)\s+week\b/.test(q))
+      ) {
+        return { kind: "week_of", iso };
+      }
+      if (sortedDateKeys(data).includes(iso) && !/\bweek\b/.test(q)) {
+        return { kind: "day", iso };
+      }
+      return { kind: "week_of", iso };
+    }
+
+    const monthOnly = q.match(
+      /\b(?:month\s+of\s+)(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s+(20\d{2}))?\b/i
+    );
+    if (monthOnly) {
+      const monthNum = MONTH_NAMES[monthOnly[1].toLowerCase()];
+      const year = monthOnly[2] ? Number(monthOnly[2]) : defaultYearFromData(data);
+      const month = `${year}-${String(monthNum).padStart(2, "0")}`;
+      return { kind: "month_of", month };
+    }
+
+    if (/\b(last\s+week|previous\s+week)\b/.test(q)) return { kind: "last_week" };
+    if (/\b(last\s+month|previous\s+month)\b/.test(q)) return { kind: "last_month" };
+    if (/\b(this\s+month|monthly)\b/.test(q)) return { kind: "month" };
+    if (/\b(today|yesterday|daily|this\s+day|latest\s+war|last\s+war)\b/.test(q)) return { kind: "today" };
+    if (/\b(lifetime|all\s+time|all\s+wars|ever|career)\b/.test(q)) return { kind: "lifetime" };
+    if (/\b(this\s+week|weekly|sun.?sat)\b/.test(q)) return { kind: "week" };
+    return { kind: "week" };
+  }
+
+  /**
+   * Relative-to-average filters:
+   * "20% less than the guild average", "20% more than average",
+   * "below guild average", "at least 15% above average", "under 80% of average"
+   */
+  function detectRelativeAverage(q) {
+    const scope = /\bteam\s+average\b/.test(q) ? "team" : "guild";
+    let pct = null;
+    let direction = null;
+    let m = null;
+
+    // Allow the stat name between the % phrase and "average"
+    // e.g. "20% less damage dealt than the guild average"
+    m = q.match(
+      /(\d+(?:\.\d+)?)\s*%\s*(less|lower|below|under|fewer)\b[\s\w/-]{0,40}?\bthan\s+(?:the\s+)?(?:guild\s+|team\s+)?average/
+    );
+    if (m) {
+      pct = Number(m[1]);
+      direction = "below";
+    }
+    if (!m) {
+      m = q.match(
+        /(\d+(?:\.\d+)?)\s*%\s*(more|higher|above|over|greater)\b[\s\w/-]{0,40}?\bthan\s+(?:the\s+)?(?:guild\s+|team\s+)?average/
+      );
+      if (m) {
+        pct = Number(m[1]);
+        direction = "above";
+      }
+    }
+    if (!m) {
+      m = q.match(
+        /(?:at\s+least\s+|over\s+|more\s+than\s+)?(\d+(?:\.\d+)?)\s*%\s*(?:above|over|higher\s+than)\s+(?:the\s+)?(?:guild\s+|team\s+)?average/
+      );
+      if (m) {
+        pct = Number(m[1]);
+        direction = "above";
+      }
+    }
+    if (!m) {
+      m = q.match(
+        /(?:at\s+least\s+|over\s+|more\s+than\s+)?(\d+(?:\.\d+)?)\s*%\s*(?:below|under|lower\s+than)\s+(?:the\s+)?(?:guild\s+|team\s+)?average/
+      );
+      if (m) {
+        pct = Number(m[1]);
+        direction = "below";
+      }
+    }
+    if (!m) {
+      m = q.match(
+        /\b(under|below|less\s+than|fewer\s+than)\s+(\d+(?:\.\d+)?)\s*%\s*of\s+(?:the\s+)?(?:guild\s+|team\s+)?average/
+      );
+      if (m) {
+        return { pct: 100 - Number(m[2]), direction: "below", scope, mode: "of_average", ofPct: Number(m[2]) };
+      }
+    }
+    if (!m) {
+      m = q.match(
+        /\b(over|above|more\s+than|at\s+least)\s+(\d+(?:\.\d+)?)\s*%\s*of\s+(?:the\s+)?(?:guild\s+|team\s+)?average/
+      );
+      if (m) {
+        return {
+          pct: Math.max(0, Number(m[2]) - 100),
+          direction: "above",
+          scope,
+          mode: "of_average",
+          ofPct: Number(m[2]),
+        };
+      }
+    }
+    if (!m) {
+      if (/\b(below|under|less\s+than|lower\s+than)\s+(?:the\s+)?(?:guild\s+|team\s+)?average\b/.test(q)) {
+        pct = 0;
+        direction = "below";
+      } else if (/\b(above|over|more\s+than|higher\s+than)\s+(?:the\s+)?(?:guild\s+|team\s+)?average\b/.test(q)) {
+        pct = 0;
+        direction = "above";
+      }
+    }
+
+    if (direction == null) return null;
+    return { pct: pct == null ? 0 : pct, direction, scope, mode: "delta" };
   }
 
   function detectTeam(q) {
@@ -641,31 +859,46 @@
       lines: [
         "Attendance: under/over/exactly N node wars · missed siege · zero wars · perfect attendance · who played",
         "Combat: top/bottom N for kills, deaths, K/D, fort, damage, CC, healing, ally HP, cannons, traps, streak",
+        "vs average: “20% less damage than guild average” · “above average fort damage” · “under 80% of average kills”",
         "MVP: mvp leaderboard · healer mvp · past mvp winners · mvp cooldown",
         "Player: “stats for Name” · “how did Name do this week” · “what team is Name on” · “Name vs Other”",
         "Teams: “who is on Ball” · “Support roster”",
-        "Period: this/last week · this/last month · today/latest war · lifetime",
-        "Other: wins/losses · summary · war calendar · how many wars · siege tickets",
-        "Tip: add a team name or period to any question. Type help anytime.",
+        "Period: this/last week · week of September 19 · this/last month · today · lifetime",
+        "Other: wins/losses · summary · war calendar · siege tickets · run a report…",
+        "Tip: add a team name or dated week to any question. Type help anytime.",
       ],
     };
   }
 
   function parseQuery(raw) {
+    const data = getData();
     const q = String(raw || "").trim().toLowerCase().replace(/[’']/g, "'");
     if (!q) return { type: "help" };
     if (/^(help|examples|\?|what can you|commands)\b/.test(q)) return { type: "help" };
 
-    const period = detectPeriod(q);
+    const period = detectPeriod(q, data);
     const team = detectTeam(q);
     const players = findPlayersInQuery(q);
+    const relative = detectRelativeAverage(q);
     const nMatch =
       q.match(/\b(?:under|below|less than|fewer than|<)\s+(\d+)\b/) ||
       q.match(/\b(?:over|above|more than|at least|>=?)\s+(\d+)\b/) ||
       q.match(/\b(?:exactly|equal to|=)\s+(\d+)\b/) ||
       q.match(/\b(?:top|bottom)\s+(\d+)\b/);
     const n = nMatch ? Number(nMatch[1]) : null;
-    const avg = /\b(per\s+war|average|avg|averaged)\b/.test(q);
+    const avg = /\b(per\s+war|average|avg|averaged)\b/.test(q) && !relative;
+
+    if (relative) {
+      const stat = detectStat(q) || "damageDealt";
+      return {
+        type: "relative_avg",
+        period,
+        team: relative.scope === "team" ? team : team,
+        key: stat,
+        relative,
+        perWar: /\b(per\s+war)\b/.test(q),
+      };
+    }
 
     if (/\b(siege\s+tickets?|ticket\s+list|who\s+has\s+tickets?)\b/.test(q)) {
       return { type: "siege_tickets", period };
@@ -767,7 +1000,6 @@
       const bottom =
         /\b(bottom|lowest|least|fewest|worst)\b/.test(q) &&
         !/\b(least\s+deaths|fewest\s+deaths|lowest\s+deaths)\b/.test(q);
-      // "fewest deaths" is a good thing → bottom of deaths ranking
       const forceBottomDeaths = /\b(fewest|least|lowest)\s+deaths\b/.test(q);
       const limit = n != null ? n : 10;
       return {
@@ -785,7 +1017,6 @@
       return { type: "summary", period, team };
     }
 
-    // leftover tokens after stripping stop words → try as player name fragment
     const leftover = q.replace(QUERY_STOP, " ").replace(/[^a-z0-9_\s]/gi, " ").replace(/\s+/g, " ").trim();
     if (leftover.length >= 3) {
       const fuzzy = findPlayersInQuery(leftover);
@@ -863,18 +1094,142 @@
         title: "I didn’t catch that",
         lines: [
           `Tried to read: “${raw}”`,
-          "Try: under 3 node wars this week · mvp this month · stats for Name · Name vs Other · top 10 K/D · siege tickets · who is on Ball",
+          "Try: under 3 node wars this week · 20% less damage than guild average for the week of September 19 · mvp this month · stats for Name",
           "Type help for the full list.",
         ],
       };
     }
 
-    const period = resolvePeriod(data, parsed.period || "week");
+    const period = resolvePeriod(data, parsed.period || { kind: "week" });
     if (!period.dateKeys.length && parsed.type !== "siege_tickets" && parsed.type !== "mvp_cooldown") {
       return { title: "No war data", lines: ["Nothing logged for that period yet."] };
     }
 
     const teamNote = parsed.team ? ` · ${parsed.team}` : "";
+
+    if (parsed.type === "relative_avg") {
+      const key = parsed.key || "damageDealt";
+      const label = STAT_LABELS[key] || key;
+      const rel = parsed.relative;
+      let pool = aggregateCombat(data, period.dateKeys).filter((r) => r.wars > 0);
+      // Guild average always uses full guild who played; team filter applies to who we report.
+      const avgPool =
+        rel.scope === "team" && parsed.team ? filterTeam(pool, parsed.team) : pool;
+      const reportPool = parsed.team ? filterTeam(pool, parsed.team) : pool;
+
+      const valueOf = (r) => {
+        const raw = Number(r[key]) || 0;
+        if (parsed.perWar && key !== "kd" && key !== "maxKillStreak" && r.wars > 0) return raw / r.wars;
+        return raw;
+      };
+
+      if (!avgPool.length) {
+        return {
+          title: `${label} vs average · ${period.label}${teamNote}`,
+          lines: ["No players with combat data for that period."],
+        };
+      }
+
+      const avg =
+        avgPool.reduce((sum, r) => sum + valueOf(r), 0) / avgPool.length;
+
+      let threshold;
+      if (rel.mode === "of_average") {
+        threshold = avg * (rel.ofPct / 100);
+      } else if (rel.direction === "below") {
+        threshold = avg * (1 - rel.pct / 100);
+      } else {
+        threshold = avg * (1 + rel.pct / 100);
+      }
+
+      const hits = reportPool
+        .filter((r) => {
+          const v = valueOf(r);
+          return rel.direction === "below" ? v < threshold : v > threshold;
+        })
+        .map((r) => {
+          const v = valueOf(r);
+          const deltaPct = avg > 0 ? ((v - avg) / avg) * 100 : 0;
+          return { row: r, value: v, deltaPct };
+        })
+        .sort((a, b) =>
+          rel.direction === "below"
+            ? a.value - b.value || a.row.familyName.localeCompare(b.row.familyName)
+            : b.value - a.value || a.row.familyName.localeCompare(b.row.familyName)
+        );
+
+      const scopeLabel = rel.scope === "team" && parsed.team ? `${parsed.team} average` : "guild average";
+      let rule;
+      if (rel.mode === "of_average") {
+        rule =
+          rel.direction === "below"
+            ? `under ${rel.ofPct}% of ${scopeLabel}`
+            : `over ${rel.ofPct}% of ${scopeLabel}`;
+      } else if (rel.pct === 0) {
+        rule = `${rel.direction === "below" ? "below" : "above"} ${scopeLabel}`;
+      } else {
+        rule = `${rel.pct}% ${rel.direction === "below" ? "less" : "more"} than ${scopeLabel}`;
+      }
+
+      const fmtAvg =
+        key === "kd"
+          ? avg.toFixed(2)
+          : key === "timeSurvived"
+            ? formatTimeFromSeconds(Math.round(avg))
+            : key === "enemyKills" ||
+                key === "deaths" ||
+                key === "ccHits" ||
+                key === "maxKillStreak" ||
+                key === "cannonHits" ||
+                key === "trapsTriggered"
+              ? (Math.round(avg * 10) / 10).toString()
+              : formatGameNumber(avg);
+
+      const fmtVal = (v, r) => {
+        if (key === "kd") return v.toFixed(2);
+        if (key === "timeSurvived") return formatTimeFromSeconds(Math.round(v));
+        if (
+          key === "enemyKills" ||
+          key === "deaths" ||
+          key === "ccHits" ||
+          key === "maxKillStreak" ||
+          key === "cannonHits" ||
+          key === "trapsTriggered"
+        ) {
+          return parsed.perWar ? v.toFixed(1) : String(Math.round(v));
+        }
+        return formatGameNumber(v);
+      };
+
+      const detail = hits.map((h) => {
+        const sign = h.deltaPct >= 0 ? "+" : "";
+        return `${h.row.familyName} — ${fmtVal(h.value, h.row)} (${sign}${h.deltaPct.toFixed(0)}% vs avg, ${h.row.wars} wars)`;
+      });
+
+      return {
+        title: `Report · ${label} ${rule} · ${period.label}${teamNote}`,
+        lines: [
+          `${scopeLabel}: ${fmtAvg}${parsed.perWar ? " /war" : ""} · threshold: ${
+            key === "kd"
+              ? threshold.toFixed(2)
+              : key === "timeSurvived"
+                ? formatTimeFromSeconds(Math.round(threshold))
+                : key === "enemyKills" ||
+                    key === "deaths" ||
+                    key === "ccHits" ||
+                    key === "cannonHits" ||
+                    key === "trapsTriggered" ||
+                    key === "maxKillStreak"
+                  ? (Math.round(threshold * 10) / 10).toString()
+                  : formatGameNumber(threshold)
+          }`,
+          `Compared ${reportPool.length} player${reportPool.length === 1 ? "" : "s"} who appeared`,
+          detail.length ? detail.join("\n") : "Nobody matched that filter.",
+          `${hits.length} player${hits.length === 1 ? "" : "s"}`,
+        ],
+        names: hits.map((h) => h.row.familyName),
+      };
+    }
 
     if (parsed.type === "mvp_cooldown") {
       const month =
@@ -1199,10 +1554,11 @@
     const chips = [
       ["Under 3 NW", "who has under 3 node wars this week"],
       ["Missed siege", "missed siege this week"],
+      ["20% under avg damage", "who has 20% less damage dealt than the guild average for the week of September 19"],
+      ["Above avg fort", "who has 20% more fort damage than the guild average this week"],
       ["MVP this month", "mvp leaderboard this month"],
       ["Healer MVP", "healer mvp this month"],
       ["Top K/D", "top 10 k/d this week"],
-      ["Top fort", "top 10 fort damage this week"],
       ["Who played", "who played this week"],
       ["Ball roster", "who is on Ball"],
       ["Wins", "wins and losses this week"],
@@ -1220,7 +1576,7 @@
       <form id="ask-form" class="ask-form">
         <label class="ask-label" for="ask-input">Question</label>
         <div class="ask-row">
-          <input id="ask-input" class="ask-input" type="text" placeholder="e.g. stats for Name · mvp this month · Name vs Other" autocomplete="off" />
+          <input id="ask-input" class="ask-input" type="text" placeholder="e.g. 20% less damage than guild average for the week of September 19" autocomplete="off" />
           <button type="submit" class="ask-btn ask-btn--gold">Ask</button>
         </div>
       </form>
