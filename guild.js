@@ -186,6 +186,7 @@ window.GUILD_NAME_ALIASES = {
   "DrShortstuff": "DrShortstuf",
   "Eight_OhFoe": "Eight_0hFoe",
   "FletesFamily": "FleitesFamily",
+  "FxAxFx0": "FxAxFxO",
   "Gaterkiller": "Deroxide",
   "Gourrmet": "Gourrrmet",
   "Grelth": "Afary",
