@@ -1,6 +1,7 @@
 /**
- * Canonical FRAG guild roster. War data in data.js should only include these members
- * (plus GUILD_NAME_ALIASES for alternate in-game spellings).
+ * Canonical FRAG guild roster. Stat views / averages / attendance only include these
+ * members (plus GUILD_NAME_ALIASES). War rows for others stay in data.js but are hidden.
+ * To restore someone, move their name from GUILD_ALUMNI back into this list.
  */
 window.GUILD_ROSTER = [
   "Atmospheric",
@@ -73,7 +74,6 @@ window.GUILD_ROSTER = [
   "Thinah",
   "Trackstarriq",
   "Treehugger",
-  "Trooperr",
   "Umbrella",
   "Unagote",
   "Vector",
@@ -83,6 +83,15 @@ window.GUILD_ROSTER = [
   "XSliceX",
   "Yuki_Chan",
   "Zoyac",
+];
+
+/**
+ * Former / inactive members. War rows remain in data.js (do not delete).
+ * Not on roster → excluded from all guild stat views, averages, attendance, MVP.
+ * Re-add the name to GUILD_ROSTER (and remove from here) if they return.
+ */
+window.GUILD_ALUMNI = [
+  "Trooperr",
 ];
 
 /** Member family name → team role */
@@ -487,7 +496,7 @@ window.GUILD_MEMBER_BALL_ROLES = {
 
 /** Optional manual MVP exclusions (rare). Normal repeat rule is the cooldown below. */
 window.GUILD_MVP_EXCLUDED = [
-  "Trooperr", // left guild; war stats kept
+  "Trooperr", // also in GUILD_ALUMNI / off roster
 ];
 
 /** Recorded monthly MVP winners (YYYY-MM). Used for repeat-win exclusion and analysis history. */
