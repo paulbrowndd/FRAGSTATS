@@ -91,6 +91,7 @@ window.GUILD_ROSTER = [
  * Re-add the name to GUILD_ROSTER (and remove from here) if they return.
  */
 window.GUILD_ALUMNI = [
+  "LegendaryOutlaws",
   "Trooperr",
 ];
 
