@@ -2358,20 +2358,20 @@
 
   function analysisPdfExportCols() {
     return [
-      { key: "rank", label: "#", type: "num" },
-      { key: "familyName", label: "Family name", type: "text" },
-      { key: "className", label: "Class", type: "text" },
-      { key: "ballRole", label: "Role", type: "text" },
-      { key: "score", label: "Score", type: "pct" },
-      { key: "attendance", label: "Att", type: "num" },
-      { key: "enemyKills", label: "Kills", type: "num" },
-      { key: "deaths", label: "Deaths", type: "num" },
-      { key: "damageDealt", label: "Damage", type: "str" },
-      { key: "ccHits", label: "CC", type: "num" },
-      { key: "totalDamageToFort", label: "Fort", type: "str" },
-      { key: "healing", label: "Heal", type: "str" },
-      { key: "timeSurvived", label: "Survived", type: "str" },
-      { key: "damageTaken", label: "Taken", type: "str" },
+      { key: "rank", label: "#", type: "num", width: 10 },
+      { key: "familyName", label: "Family name", type: "text", width: 34 },
+      { key: "className", label: "Class", type: "text", width: 22 },
+      { key: "ballRole", label: "Role", type: "text", width: 18 },
+      { key: "score", label: "Score", type: "pct", width: 16 },
+      { key: "attendance", label: "Att", type: "num", width: 12 },
+      { key: "enemyKills", label: "Kills", type: "num", width: 14 },
+      { key: "deaths", label: "Deaths", type: "num", width: 16 },
+      { key: "damageDealt", label: "Damage", type: "str", width: 18 },
+      { key: "ccHits", label: "CC", type: "num", width: 12 },
+      { key: "totalDamageToFort", label: "Fort", type: "str", width: 16 },
+      { key: "healing", label: "Heal", type: "str", width: 16 },
+      { key: "timeSurvived", label: "Survived", type: "str", width: 18 },
+      { key: "damageTaken", label: "Taken", type: "str", width: 16 },
     ];
   }
 
@@ -2382,50 +2382,86 @@
     return String(v);
   }
 
-  function buildAnalysisPdfTableRows(rows, tierClass) {
+  function analysisPdfBodyRows(rows) {
     const cols = analysisPdfExportCols();
-    return rows
-      .map((r) => {
-        const tds = cols
-          .map((c) => {
-            const cls = c.type === "text" ? "" : " num";
-            return `<td class="${cls}">${escapeHtml(formatAnalysisPdfCell(r, c))}</td>`;
-          })
-          .join("");
-        return `<tr class="${tierClass}">${tds}</tr>`;
-      })
-      .join("");
+    if (!rows.length) {
+      return [cols.map((c, i) => (i === 0 ? "—" : i === 1 ? "None" : ""))];
+    }
+    return rows.map((r) => cols.map((c) => formatAnalysisPdfCell(r, c)));
   }
 
-  function buildAnalysisPdfSheet(state) {
+  function drawAnalysisPdfTable(pdf, title, rows, startY, accentRgb) {
     const cols = analysisPdfExportCols();
-    const head = cols
-      .map((c) => {
-        const cls = c.type === "text" ? "" : " num";
-        return `<th class="${cls}">${escapeHtml(c.label)}</th>`;
-      })
-      .join("");
-    const sheet = document.createElement("div");
-    sheet.className = "wa-export-sheet";
-    sheet.innerHTML = `
-      <h2 class="wa-export-title">${escapeHtml(state.title)}</h2>
-      <p class="wa-export-sub">${escapeHtml(state.meta)}</p>
-      <p class="wa-export-summary">${state.summaryHtml}</p>
-      <div class="wa-export-group">
-        <h3 class="wa-export-group-title">High performers (top half)</h3>
-        <table class="wa-export-table">
-          <thead><tr>${head}</tr></thead>
-          <tbody>${buildAnalysisPdfTableRows(state.highRows, "wa-export-high") || `<tr><td colspan="${cols.length}">None</td></tr>`}</tbody>
-        </table>
-      </div>
-      <div class="wa-export-group">
-        <h3 class="wa-export-group-title wa-export-group-title--low">Low performers (bottom half)</h3>
-        <table class="wa-export-table">
-          <thead><tr>${head}</tr></thead>
-          <tbody>${buildAnalysisPdfTableRows(state.lowRows, "wa-export-low") || `<tr><td colspan="${cols.length}">None</td></tr>`}</tbody>
-        </table>
-      </div>`;
-    return sheet;
+    const margin = 10;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(accentRgb[0], accentRgb[1], accentRgb[2]);
+    pdf.text(title, margin, startY);
+
+    pdf.autoTable({
+      startY: startY + 3,
+      head: [cols.map((c) => c.label)],
+      body: analysisPdfBodyRows(rows),
+      theme: "plain",
+      margin: { left: margin, right: margin, top: 18, bottom: 12 },
+      styles: {
+        font: "helvetica",
+        fontSize: 8,
+        cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
+        textColor: [30, 36, 44],
+        lineColor: [210, 218, 226],
+        lineWidth: 0.1,
+        overflow: "linebreak",
+        valign: "middle",
+        minCellHeight: 6,
+      },
+      headStyles: {
+        fontStyle: "bold",
+        fontSize: 7.5,
+        textColor: [70, 82, 96],
+        fillColor: [236, 240, 244],
+        cellPadding: { top: 2.4, right: 2, bottom: 2.4, left: 2 },
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: Object.fromEntries(
+        cols.map((c, i) => [
+          i,
+          {
+            cellWidth: c.width,
+            halign: c.type === "text" ? "left" : "right",
+            ...(c.key === "familyName"
+              ? { fontStyle: "bold", overflow: "linebreak", cellWidth: c.width }
+              : {}),
+            ...(c.key === "rank" ? { halign: "center" } : {}),
+          },
+        ])
+      ),
+      didParseCell(data) {
+        if (data.section !== "body") return;
+        if (data.column.index === 1) {
+          // Keep family names fully visible; never clip mid-glyph.
+          data.cell.styles.overflow = "linebreak";
+          data.cell.styles.cellWidth = cols[1].width;
+        }
+      },
+      willDrawCell(data) {
+        if (data.section !== "body" || data.column.index !== 0) return;
+        const x = data.cell.x;
+        const y = data.cell.y;
+        const h = data.cell.height;
+        pdf.setFillColor(accentRgb[0], accentRgb[1], accentRgb[2]);
+        pdf.rect(x, y, 1.1, h, "F");
+      },
+      tableWidth: pageWidth - margin * 2,
+      rowPageBreak: "avoid",
+      showHead: "everyPage",
+    });
+
+    return pdf.lastAutoTable.finalY;
   }
 
   async function downloadAnalysisPdf() {
@@ -2442,69 +2478,84 @@
 
     try {
       await loadExternalScript(
-        "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-      );
-      await loadExternalScript(
         "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
       );
+      await loadExternalScript(
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"
+      );
 
-      const sheet = buildAnalysisPdfSheet(lastAnalysisPdfState);
-      document.body.appendChild(sheet);
-      const canvas = await window.html2canvas(sheet, {
-        scale: 2,
-        backgroundColor: "#0b0e13",
-        useCORS: true,
-        logging: false,
-        width: sheet.scrollWidth,
-        height: sheet.scrollHeight,
-        windowWidth: sheet.scrollWidth,
-        windowHeight: sheet.scrollHeight,
-      });
-      sheet.remove();
-
-      const img = canvas.toDataURL("image/png");
+      const state = lastAnalysisPdfState;
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "mm",
         format: "a4",
       });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 6;
-      const imgWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let y = margin;
-
-      pdf.addImage(img, "PNG", margin, y, imgWidth, imgHeight);
-      heightLeft -= pageHeight - margin * 2;
-      while (heightLeft > 0) {
-        y = margin - (imgHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(img, "PNG", margin, y, imgWidth, imgHeight);
-        heightLeft -= pageHeight - margin * 2;
+      if (typeof pdf.autoTable !== "function") {
+        throw new Error("jsPDF AutoTable plugin failed to load");
       }
 
+      const margin = 10;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       const dateStamp = new Date().toISOString().slice(0, 10);
+
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.setTextColor(220, 70, 40);
+      pdf.text(state.title, margin, 14);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(90, 102, 114);
+      const metaLines = pdf.splitTextToSize(state.meta || "", pageWidth - margin * 2);
+      pdf.text(metaLines, margin, 20);
+      let y = 20 + metaLines.length * 4.2;
+      pdf.text(state.summaryText || "", margin, y);
+      y += 8;
+
+      y = drawAnalysisPdfTable(
+        pdf,
+        "High performers (top half)",
+        state.highRows,
+        y,
+        [220, 70, 40]
+      );
+      y += 10;
+
+      const lowTitleH = 8;
+      if (y + lowTitleH + 20 > pageHeight - 12) {
+        pdf.addPage();
+        y = 16;
+      }
+
+      drawAnalysisPdfTable(
+        pdf,
+        "Low performers (bottom half)",
+        state.lowRows,
+        y,
+        [120, 128, 140]
+      );
+
       const totalPages = pdf.getNumberOfPages();
       for (let page = 1; page <= totalPages; page++) {
         pdf.setPage(page);
+        pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.setTextColor(140, 154, 170);
         pdf.text(
-          `${lastAnalysisPdfState.title} · ${dateStamp} · Page ${page} of ${totalPages}`,
+          `${state.title} · ${dateStamp} · Page ${page} of ${totalPages}`,
           margin,
-          pageHeight - 2
+          pageHeight - 4
         );
       }
 
       const kind =
         currentView === VIEW.WEEKLY_ANALYSIS ? "weekly-analysis" : "monthly-analysis";
-      const periodSlug = String(lastAnalysisPdfState.periodKey || dateStamp).replace(
-        /[^\w.-]+/g,
-        "_"
-      );
+      const periodSlug = String(state.periodKey || dateStamp).replace(/[^\w.-]+/g, "_");
       pdf.save(`FRAG-${kind}-${periodSlug}.pdf`);
     } catch {
       alert("Could not generate PDF. Check your connection and try again.");
@@ -2544,7 +2595,7 @@
       title,
       meta,
       periodKey,
-      summaryHtml: `<strong>${highRows.length}</strong> high performers · <strong>${lowRows.length}</strong> low performers · split near <strong>${escapeHtml(formatMvpScore(medianScore))}</strong>`,
+      summaryText: `${highRows.length} high performers · ${lowRows.length} low performers · split near ${formatMvpScore(medianScore)}`,
       highRows,
       lowRows,
     };
