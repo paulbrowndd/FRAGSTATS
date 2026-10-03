@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FRAG · Node War Stats</title>
-    <link rel="stylesheet" href="styles.css?v=20260920c" />
+    <link rel="stylesheet" href="styles.css?v=20261002a" />
   </head>
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
@@ -143,11 +143,16 @@
       </section>
 
       <section id="war-analysis-panel" class="war-analysis-section panel" hidden aria-labelledby="war-analysis-heading">
-        <div class="mvp-head">
-          <h2 id="war-analysis-heading" class="mvp-title">War performance analysis</h2>
-          <p id="war-analysis-sub" class="mvp-sub">
-            MVP-weighted scores from period totals. Top half = high performers; bottom half = low performers.
-          </p>
+        <div class="mvp-head war-analysis-head">
+          <div class="war-analysis-head-text">
+            <h2 id="war-analysis-heading" class="mvp-title">War performance analysis</h2>
+            <p id="war-analysis-sub" class="mvp-sub">
+              MVP-weighted scores from period totals. Top half = high performers; bottom half = low performers.
+            </p>
+          </div>
+          <button type="button" id="war-analysis-download" class="war-analysis-download">
+            Download PDF
+          </button>
         </div>
         <dl id="war-analysis-formula" class="mvp-breakdown"></dl>
         <p id="war-analysis-summary" class="war-analysis-summary"></p>
@@ -303,6 +308,6 @@
     <script src="edania-chests.js?v=20260902j"></script>
     <script src="bingo-book-data.js"></script>
     <script src="bingo-book.js?v=20260916a"></script>
-    <script src="app.js?v=20260920d"></script>
+    <script src="app.js?v=20261002a"></script>
   </body>
 </html>

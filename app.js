@@ -80,6 +80,7 @@
   const warAnalysisFormula = document.getElementById("war-analysis-formula");
   const warAnalysisSummary = document.getElementById("war-analysis-summary");
   const warAnalysisPriorMvps = document.getElementById("war-analysis-prior-mvps");
+  const warAnalysisDownloadBtn = document.getElementById("war-analysis-download");
   const siegeTicketsPanel = document.getElementById("siege-tickets-panel");
   const classRankingsPanel = document.getElementById("class-rankings-panel");
   const edaniaChestsPanel = document.getElementById("edania-chests-panel");
@@ -207,6 +208,8 @@
   let excludedPlayers = new Set();
   /** Last rendered visible rows — used for check-all. */
   let lastVisibleRows = [];
+  /** Snapshot for Weekly/Monthly analysis PDF export. */
+  let lastAnalysisPdfState = null;
 
   const TEAM_FILTER_ORDER = [
     "Shotcaller",
@@ -2112,6 +2115,10 @@
     if (!warAnalysisPanel) return;
     const show = isWarAnalysisView() && ranked.length > 0;
     warAnalysisPanel.hidden = !show;
+    if (warAnalysisDownloadBtn) {
+      warAnalysisDownloadBtn.disabled = !show;
+      warAnalysisDownloadBtn.hidden = !isWarAnalysisView();
+    }
     if (!show) return;
 
     const heading = document.getElementById("war-analysis-heading");
@@ -2335,6 +2342,214 @@
     updateCheckAllState(filtered);
   }
 
+  function loadExternalScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(script);
+    });
+  }
+
+  function analysisPdfExportCols() {
+    return [
+      { key: "rank", label: "#", type: "num" },
+      { key: "familyName", label: "Family name", type: "text" },
+      { key: "className", label: "Class", type: "text" },
+      { key: "ballRole", label: "Role", type: "text" },
+      { key: "score", label: "Score", type: "pct" },
+      { key: "attendance", label: "Att", type: "num" },
+      { key: "enemyKills", label: "Kills", type: "num" },
+      { key: "deaths", label: "Deaths", type: "num" },
+      { key: "damageDealt", label: "Damage", type: "str" },
+      { key: "ccHits", label: "CC", type: "num" },
+      { key: "totalDamageToFort", label: "Fort", type: "str" },
+      { key: "healing", label: "Heal", type: "str" },
+      { key: "timeSurvived", label: "Survived", type: "str" },
+      { key: "damageTaken", label: "Taken", type: "str" },
+    ];
+  }
+
+  function formatAnalysisPdfCell(row, col) {
+    const v = row[col.key];
+    if (col.key === "score") return formatMvpScore(v);
+    if (v == null || v === "") return "—";
+    return String(v);
+  }
+
+  function buildAnalysisPdfTableRows(rows, tierClass) {
+    const cols = analysisPdfExportCols();
+    return rows
+      .map((r) => {
+        const tds = cols
+          .map((c) => {
+            const cls = c.type === "text" ? "" : " num";
+            return `<td class="${cls}">${escapeHtml(formatAnalysisPdfCell(r, c))}</td>`;
+          })
+          .join("");
+        return `<tr class="${tierClass}">${tds}</tr>`;
+      })
+      .join("");
+  }
+
+  function buildAnalysisPdfSheet(state) {
+    const cols = analysisPdfExportCols();
+    const head = cols
+      .map((c) => {
+        const cls = c.type === "text" ? "" : " num";
+        return `<th class="${cls}">${escapeHtml(c.label)}</th>`;
+      })
+      .join("");
+    const sheet = document.createElement("div");
+    sheet.className = "wa-export-sheet";
+    sheet.innerHTML = `
+      <h2 class="wa-export-title">${escapeHtml(state.title)}</h2>
+      <p class="wa-export-sub">${escapeHtml(state.meta)}</p>
+      <p class="wa-export-summary">${state.summaryHtml}</p>
+      <div class="wa-export-group">
+        <h3 class="wa-export-group-title">High performers (top half)</h3>
+        <table class="wa-export-table">
+          <thead><tr>${head}</tr></thead>
+          <tbody>${buildAnalysisPdfTableRows(state.highRows, "wa-export-high") || `<tr><td colspan="${cols.length}">None</td></tr>`}</tbody>
+        </table>
+      </div>
+      <div class="wa-export-group">
+        <h3 class="wa-export-group-title wa-export-group-title--low">Low performers (bottom half)</h3>
+        <table class="wa-export-table">
+          <thead><tr>${head}</tr></thead>
+          <tbody>${buildAnalysisPdfTableRows(state.lowRows, "wa-export-low") || `<tr><td colspan="${cols.length}">None</td></tr>`}</tbody>
+        </table>
+      </div>`;
+    return sheet;
+  }
+
+  async function downloadAnalysisPdf() {
+    if (!lastAnalysisPdfState || !isWarAnalysisView()) {
+      alert("Open Weekly or Monthly analysis first.");
+      return;
+    }
+    const btn = warAnalysisDownloadBtn;
+    const prevLabel = btn?.textContent || "Download PDF";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Generating…";
+    }
+
+    try {
+      await loadExternalScript(
+        "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+      );
+      await loadExternalScript(
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+      );
+
+      const sheet = buildAnalysisPdfSheet(lastAnalysisPdfState);
+      document.body.appendChild(sheet);
+      const canvas = await window.html2canvas(sheet, {
+        scale: 2,
+        backgroundColor: "#0b0e13",
+        useCORS: true,
+        logging: false,
+        width: sheet.scrollWidth,
+        height: sheet.scrollHeight,
+        windowWidth: sheet.scrollWidth,
+        windowHeight: sheet.scrollHeight,
+      });
+      sheet.remove();
+
+      const img = canvas.toDataURL("image/png");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 6;
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let y = margin;
+
+      pdf.addImage(img, "PNG", margin, y, imgWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
+      while (heightLeft > 0) {
+        y = margin - (imgHeight - heightLeft);
+        pdf.addPage();
+        pdf.addImage(img, "PNG", margin, y, imgWidth, imgHeight);
+        heightLeft -= pageHeight - margin * 2;
+      }
+
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const totalPages = pdf.getNumberOfPages();
+      for (let page = 1; page <= totalPages; page++) {
+        pdf.setPage(page);
+        pdf.setFontSize(8);
+        pdf.setTextColor(140, 154, 170);
+        pdf.text(
+          `${lastAnalysisPdfState.title} · ${dateStamp} · Page ${page} of ${totalPages}`,
+          margin,
+          pageHeight - 2
+        );
+      }
+
+      const kind =
+        currentView === VIEW.WEEKLY_ANALYSIS ? "weekly-analysis" : "monthly-analysis";
+      const periodSlug = String(lastAnalysisPdfState.periodKey || dateStamp).replace(
+        /[^\w.-]+/g,
+        "_"
+      );
+      pdf.save(`FRAG-${kind}-${periodSlug}.pdf`);
+    } catch {
+      alert("Could not generate PDF. Check your connection and try again.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = prevLabel;
+      }
+    }
+  }
+
+  function storeAnalysisPdfState(filtered, ranked, meta) {
+    const { high, low, medianScore } = splitHighLowPerformers(ranked);
+    const highNames = new Set(high.map((e) => e.familyName));
+    const lowNames = new Set(low.map((e) => e.familyName));
+    const rankOrder = new Map(ranked.map((e, i) => [e.familyName, i]));
+    const byRank = (a, b) =>
+      (rankOrder.get(a.familyName) ?? 999) - (rankOrder.get(b.familyName) ?? 999);
+
+    const highRows = filtered
+      .filter((r) => highNames.has(r.familyName))
+      .sort(byRank)
+      .map((r, i) => ({ ...r, rank: i + 1 }));
+    const lowRows = filtered
+      .filter((r) => lowNames.has(r.familyName))
+      .sort(byRank)
+      .map((r, i) => ({ ...r, rank: highRows.length + i + 1 }));
+
+    const title =
+      currentView === VIEW.WEEKLY_ANALYSIS ? "Weekly war analysis" : "Monthly war analysis";
+    const periodKey =
+      currentView === VIEW.WEEKLY_ANALYSIS
+        ? currentWeekSunday || ""
+        : currentMonth || "";
+
+    lastAnalysisPdfState = {
+      title,
+      meta,
+      periodKey,
+      summaryHtml: `<strong>${highRows.length}</strong> high performers · <strong>${lowRows.length}</strong> low performers · split near <strong>${escapeHtml(formatMvpScore(medianScore))}</strong>`,
+      highRows,
+      lowRows,
+    };
+  }
+
   function renderWarAnalysisBody() {
     hideStatsPanels();
     if (attendancePanel) attendancePanel.hidden = true;
@@ -2366,6 +2581,7 @@
     const colCount = getActiveCols().length;
     if (!filtered.length) {
       lastVisibleRows = [];
+      lastAnalysisPdfState = null;
       const emptyMsg = total
         ? q || selectedTeamFilters.size || selectedBallRoleFilters.size
           ? "No matching players for the current filters."
@@ -2381,6 +2597,7 @@
     const avgRows = rowsForAverages(filtered);
     const avgByCol = computeColumnAverages(avgRows);
     lastVisibleRows = filtered;
+    storeAnalysisPdfState(filtered, ranked, meta);
 
     const includedCount = avgRows.length;
     if (includedCount < filtered.length) {
@@ -2704,6 +2921,12 @@
     });
 
     search.addEventListener("input", renderBody);
+
+    if (warAnalysisDownloadBtn) {
+      warAnalysisDownloadBtn.addEventListener("click", () => {
+        downloadAnalysisPdf();
+      });
+    }
 
     if (teamFiltersEl) {
       teamFiltersEl.addEventListener("change", (e) => {

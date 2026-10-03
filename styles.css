@@ -1087,10 +1087,137 @@ body.site-auth-open {
   display: none !important;
 }
 
+.war-analysis-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.war-analysis-head-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.war-analysis-download {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: rgba(255, 50, 30, 0.1);
+  color: var(--accent-bright);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.war-analysis-download:hover:not(:disabled) {
+  background: rgba(255, 50, 30, 0.18);
+  border-color: var(--accent);
+}
+
+.war-analysis-download:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .war-analysis-summary {
   margin: 0;
   font-size: 0.88rem;
   color: var(--muted);
+}
+
+/* Off-screen sheet used only for analysis PDF capture */
+.wa-export-sheet {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 1400px;
+  padding: 28px 32px 36px;
+  background: #0b0e13;
+  color: #e8edf2;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.wa-export-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ff6a4a;
+}
+
+.wa-export-sub,
+.wa-export-summary {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #9aa7b5;
+  line-height: 1.4;
+}
+
+.wa-export-summary strong {
+  color: #ff8a6a;
+}
+
+.wa-export-group {
+  margin-top: 22px;
+}
+
+.wa-export-group-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ff6a4a;
+}
+
+.wa-export-group-title--low {
+  color: #9aa7b5;
+}
+
+.wa-export-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wa-export-table th,
+.wa-export-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #243040;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wa-export-table th {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7f8d9c;
+  background: #121820;
+}
+
+.wa-export-table td.num,
+.wa-export-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.wa-export-table tr.wa-export-high td:first-child {
+  box-shadow: inset 3px 0 0 #ff5030;
+}
+
+.wa-export-table tr.wa-export-low td:first-child {
+  box-shadow: inset 3px 0 0 #6b7380;
 }
 
 .war-analysis-summary strong {
