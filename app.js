@@ -80,6 +80,7 @@
   const warAnalysisFormula = document.getElementById("war-analysis-formula");
   const warAnalysisSummary = document.getElementById("war-analysis-summary");
   const warAnalysisPriorMvps = document.getElementById("war-analysis-prior-mvps");
+  const warAnalysisNoShows = document.getElementById("war-analysis-no-shows");
   const warAnalysisDownloadBtn = document.getElementById("war-analysis-download");
   const siegeTicketsPanel = document.getElementById("siege-tickets-panel");
   const classRankingsPanel = document.getElementById("class-rankings-panel");
@@ -519,7 +520,11 @@
   }
 
   function rowsForAverages(rows) {
-    return rows.filter((r) => isPlayerIncluded(r));
+    return rows.filter((r) => {
+      if (!isPlayerIncluded(r)) return false;
+      if (isWarAnalysisView() && totalWarAttendance(r) <= 0) return false;
+      return true;
+    });
   }
 
   function formatFamilyNameCellWithInclude(warName) {
@@ -656,6 +661,23 @@
     return getGuildRoster()
       .filter((name) => !present.has(name))
       .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }
+
+  /** Roster members with 0 node wars and 0 sieges in the current analysis period. */
+  function getAnalysisNoShowRows(data) {
+    const dateKeys = getPeriodDateKeys(data);
+    const names = missingGuildMembers(data, dateKeys);
+    const rows = names.map((name) => ({
+      familyName: name,
+      team: getMemberTeam(name) || "—",
+      className: getMemberClass(name) || "—",
+      spec: getMemberSpec(name) || "—",
+      ballRole: getMemberBallRole(name) || "—",
+      nodeWar: 0,
+      siege: 0,
+      attendance: 0,
+    }));
+    return applyRosterFilters(rows);
   }
 
   function renderAttendancePanel(data, dateKeys) {
@@ -2111,15 +2133,46 @@
       : "";
   }
 
-  function renderWarAnalysisPanel(ranked, meta, data) {
+  function renderWarAnalysisNoShows(noShows) {
+    if (!warAnalysisNoShows) return;
+    if (!noShows.length) {
+      warAnalysisNoShows.hidden = true;
+      warAnalysisNoShows.innerHTML = "";
+      return;
+    }
+    const items = noShows
+      .map(
+        (r) =>
+          `<li>${formatFamilyNameCell(r.familyName)}${
+            r.className && r.className !== "—"
+              ? ` <span class="war-analysis-no-shows-class">${escapeHtml(r.className)}</span>`
+              : ""
+          }</li>`
+      )
+      .join("");
+    warAnalysisNoShows.hidden = false;
+    warAnalysisNoShows.innerHTML = `
+      <p class="war-analysis-no-shows-title">Did not attend (${noShows.length})</p>
+      <p class="war-analysis-no-shows-note">0 node wars and 0 sieges this period. Not included in scores or guild averages.</p>
+      <ul class="war-analysis-no-shows-list">${items}</ul>
+    `;
+  }
+
+  function renderWarAnalysisPanel(ranked, meta, data, noShows = []) {
     if (!warAnalysisPanel) return;
-    const show = isWarAnalysisView() && ranked.length > 0;
+    const show = isWarAnalysisView() && (ranked.length > 0 || noShows.length > 0);
     warAnalysisPanel.hidden = !show;
     if (warAnalysisDownloadBtn) {
       warAnalysisDownloadBtn.disabled = !show;
       warAnalysisDownloadBtn.hidden = !isWarAnalysisView();
     }
-    if (!show) return;
+    if (!show) {
+      if (warAnalysisNoShows) {
+        warAnalysisNoShows.hidden = true;
+        warAnalysisNoShows.innerHTML = "";
+      }
+      return;
+    }
 
     const heading = document.getElementById("war-analysis-heading");
     if (heading) {
@@ -2130,7 +2183,7 @@
     const periodLabel =
       currentView === VIEW.WEEKLY_ANALYSIS ? "weekly" : "monthly";
     if (warAnalysisSub) {
-      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers. Recent MVP winners on cooldown are included here; they are excluded only on the Monthly MVP tab.`;
+      warAnalysisSub.textContent = `${meta}. MVP-weighted scores from ${periodLabel} totals. Top half = high performers; bottom half = low performers. Members with 0 node wars and 0 sieges are listed separately and excluded from scores and averages. Recent MVP winners on cooldown are included here; they are excluded only on the Monthly MVP tab.`;
     }
 
     if (warAnalysisFormula) {
@@ -2160,6 +2213,8 @@
         : "";
       warAnalysisPriorMvps.hidden = !priorWinners.length;
     }
+
+    renderWarAnalysisNoShows(noShows);
   }
 
   function renderAnalysisTableRow(r, tierClass, avgByCol) {
@@ -2532,13 +2587,77 @@
         y = 16;
       }
 
-      drawAnalysisPdfTable(
+      y = drawAnalysisPdfTable(
         pdf,
         "Low performers (bottom half)",
         state.lowRows,
         y,
         [120, 128, 140]
       );
+
+      const noShows = state.noShows || [];
+      y += 10;
+      if (y + 24 > pageHeight - 12) {
+        pdf.addPage();
+        y = 16;
+      }
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(120, 128, 140);
+      pdf.text(`Did not attend (${noShows.length})`, margin, y);
+      y += 5;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(90, 102, 114);
+      pdf.text(
+        "0 node wars and 0 sieges this period. Not included in scores or guild averages.",
+        margin,
+        y
+      );
+      y += 3;
+      pdf.autoTable({
+        startY: y,
+        head: [["Family name", "Team", "Class", "Spec", "Role"]],
+        body: noShows.length
+          ? noShows.map((r) => [
+              r.familyName,
+              r.team || "—",
+              r.className || "—",
+              r.spec || "—",
+              r.ballRole || "—",
+            ])
+          : [["None", "", "", "", ""]],
+        theme: "plain",
+        margin: { left: margin, right: margin, top: 18, bottom: 12 },
+        styles: {
+          font: "helvetica",
+          fontSize: 8,
+          cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
+          textColor: [30, 36, 44],
+          lineColor: [210, 218, 226],
+          lineWidth: 0.1,
+          overflow: "linebreak",
+          valign: "middle",
+          minCellHeight: 6,
+        },
+        headStyles: {
+          fontStyle: "bold",
+          fontSize: 7.5,
+          textColor: [70, 82, 96],
+          fillColor: [236, 240, 244],
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 50, fontStyle: "bold" },
+          1: { cellWidth: 32 },
+          2: { cellWidth: 36 },
+          3: { cellWidth: 32 },
+          4: { cellWidth: 32 },
+        },
+        tableWidth: pageWidth - margin * 2,
+        rowPageBreak: "avoid",
+        showHead: "everyPage",
+      });
 
       const totalPages = pdf.getNumberOfPages();
       for (let page = 1; page <= totalPages; page++) {
@@ -2567,7 +2686,7 @@
     }
   }
 
-  function storeAnalysisPdfState(filtered, ranked, meta) {
+  function storeAnalysisPdfState(filtered, ranked, meta, noShows = []) {
     const { high, low, medianScore } = splitHighLowPerformers(ranked);
     const highNames = new Set(high.map((e) => e.familyName));
     const lowNames = new Set(low.map((e) => e.familyName));
@@ -2595,9 +2714,10 @@
       title,
       meta,
       periodKey,
-      summaryText: `${highRows.length} high performers · ${lowRows.length} low performers · split near ${formatMvpScore(medianScore)}`,
+      summaryText: `${highRows.length} high performers · ${lowRows.length} low performers · split near ${formatMvpScore(medianScore)} · ${noShows.length} did not attend`,
       highRows,
       lowRows,
+      noShows,
     };
   }
 
@@ -2611,9 +2731,12 @@
     metaEl.textContent = meta;
 
     const guildFiltered = filterGuildRows(rows);
-    const teamFiltered = applyRosterFilters(guildFiltered);
+    const teamFiltered = applyRosterFilters(guildFiltered).filter(
+      (r) => totalWarAttendance(r) > 0
+    );
+    const noShows = getAnalysisNoShowRows(data);
     const ranked = computeMvpScores(teamFiltered);
-    renderWarAnalysisPanel(ranked, meta, data);
+    renderWarAnalysisPanel(ranked, meta, data, noShows);
 
     const analysisRows = rankedToAnalysisRows(ranked, teamFiltered).map(enrichRosterFields);
     const q = (search.value || "").trim().toLowerCase();
@@ -2632,7 +2755,7 @@
     const colCount = getActiveCols().length;
     if (!filtered.length) {
       lastVisibleRows = [];
-      lastAnalysisPdfState = null;
+      storeAnalysisPdfState([], ranked, meta, noShows);
       const emptyMsg = total
         ? q || selectedTeamFilters.size || selectedBallRoleFilters.size
           ? "No matching players for the current filters."
@@ -2648,7 +2771,7 @@
     const avgRows = rowsForAverages(filtered);
     const avgByCol = computeColumnAverages(avgRows);
     lastVisibleRows = filtered;
-    storeAnalysisPdfState(filtered, ranked, meta);
+    storeAnalysisPdfState(filtered, ranked, meta, noShows);
 
     const includedCount = avgRows.length;
     if (includedCount < filtered.length) {

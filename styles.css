@@ -1146,6 +1146,52 @@ body.site-auth-open {
   color: var(--accent-bright);
 }
 
+.war-analysis-no-shows {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(120, 120, 130, 0.08);
+}
+
+.war-analysis-no-shows[hidden] {
+  display: none !important;
+}
+
+.war-analysis-no-shows-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.war-analysis-no-shows-note {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.war-analysis-no-shows-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.war-analysis-no-shows-list li {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.war-analysis-no-shows-class {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 tbody tr.analysis-group-header td {
   padding: 0.55rem 0.65rem;
   font-size: 0.68rem;
