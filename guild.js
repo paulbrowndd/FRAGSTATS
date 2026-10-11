@@ -26,8 +26,6 @@ window.GUILD_ROSTER = [
   "FxAxFxO",
   "GainTrain",
   "GhostMachine",
-  "GodTamers",
-  "GodlyHero",
   "GodZeebo",
   "Gourrrmet",
   "Grammatical",
@@ -40,7 +38,6 @@ window.GUILD_ROSTER = [
   "IEtherealI",
   "Ikaroswolf",
   "Infernorage",
-  "Interventionz",
   "IRunPockets",
   "Jaycro",
   "Jazz1118",
@@ -69,7 +66,6 @@ window.GUILD_ROSTER = [
   "Sugar",
   "Sunsorian",
   "Suspex",
-  "TDOT23",
   "TheRossSauce",
   "Thinah",
   "Trackstarriq",
@@ -91,7 +87,11 @@ window.GUILD_ROSTER = [
  * Re-add the name to GUILD_ROSTER (and remove from here) if they return.
  */
 window.GUILD_ALUMNI = [
+  "GodlyHero",
+  "GodTamers",
+  "Interventionz",
   "LegendaryOutlaws",
+  "TDOT23",
   "Trooperr",
 ];
 
